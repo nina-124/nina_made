@@ -260,11 +260,18 @@ function renderGrid(container, node, path, trail, ctx) {
   }
 }
 
-function renderWorkPlaceholder(container, node, trail, ctx) {
+function renderWorkDetail(container, node, trail, ctx) {
+  const src = localPreviewCache.get(node.id) || node.cover;
   container.innerHTML = `
     <div class="topbar">${renderCrumb(trail, ctx)}</div>
+    <div class="work-detail-cover">${src ? `<img src="${src}" alt="${node.name}">` : ''}</div>
+    <h2 class="work-detail-name">${node.name}</h2>
     <div class="placeholder-panel">
-      「${node.name}」的詳細頁（線材需求、圖解表格、圖文區塊）尚在開發中，之後會接上私有 repo 的資料。
+      ${
+        ctx.authed
+          ? `線材需求、圖解表格、圖文區塊尚在開發中，之後會接上私有 repo 的資料。`
+          : `詳細的線材需求與圖解筆記僅創作者本人可見。`
+      }
     </div>
   `;
   bindCrumb(container, ctx);
@@ -275,11 +282,7 @@ export async function renderWorksView(container, path, ctx) {
   const { node, trail } = findNode(path);
 
   if (node.type === 'work') {
-    if (!ctx.authed) {
-      container.innerHTML = `<div class="placeholder-panel">這個內容只有登入才能查看。</div>`;
-      return;
-    }
-    renderWorkPlaceholder(container, node, trail, ctx);
+    renderWorkDetail(container, node, trail, ctx);
     return;
   }
 
