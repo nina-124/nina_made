@@ -18,6 +18,11 @@ async function loadPublicData() {
   return cache;
 }
 
+export async function getTopLevelCategories() {
+  const data = await loadPublicData();
+  return (data.items || []).filter((i) => i.type === 'category');
+}
+
 async function ensureEditableData(token) {
   const result = await getJsonFile(PUBLIC_REPO, DATA_PATH, token);
   cache = result.data || { items: [] };
@@ -246,6 +251,7 @@ function renderGrid(container, node, path, trail, ctx) {
         sha = res.content.sha;
         editMode = false;
         renderGrid(container, node, path, trail, ctx);
+        window.dispatchEvent(new CustomEvent('works:updated'));
       } catch (e) {
         alert(e.message);
         editToggle.disabled = false;

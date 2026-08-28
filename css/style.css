@@ -79,6 +79,8 @@ a { color: inherit; }
   border-radius: 10px;
 }
 .nav-subitem:hover { background: rgba(93, 163, 68, 0.1); }
+.nav-subitem.active { background: rgba(93, 163, 68, 0.2); font-weight: 700; }
+.nav-subitem { border: none; background: none; width: 100%; text-align: left; }
 .nav-subitem .del-btn { margin-left: auto; }
 
 .nav-add {
