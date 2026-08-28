@@ -1,6 +1,6 @@
 import { getAuth, clearAuth } from './auth.js';
 import { onRouteChange, navigate, startRouter } from './router.js';
-import { renderWorksView, getTopLevelCategories } from './views/works.js';
+import { renderWorksView, getCategories, isEditMode, addCategory, deleteCategory } from './views/works.js';
 
 const auth = getAuth();
 const ctx = {
@@ -13,16 +13,36 @@ const ctx = {
 async function renderWorksSubnav(activeCategoryId) {
   const subnav = document.getElementById('works-subnav');
   if (!subnav) return;
-  const categories = await getTopLevelCategories();
-  subnav.innerHTML = categories
-    .map(
-      (c) =>
-        `<button class="nav-subitem ${c.id === activeCategoryId ? 'active' : ''}" data-cat="${c.id}">${c.name}</button>`
-    )
-    .join('');
-  subnav.querySelectorAll('[data-cat]').forEach((el) => {
-    el.addEventListener('click', () => navigate(['works', el.dataset.cat]));
+  const categories = await getCategories();
+  const editing = isEditMode();
+  subnav.innerHTML = `
+    ${categories
+      .map(
+        (c) => `
+      <div class="nav-subitem ${c.id === activeCategoryId ? 'active' : ''}" data-cat="${c.id}" style="display:flex; align-items:center;">
+        <span style="flex:1; cursor:pointer;">${c.name}</span>
+        ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
+      </div>`
+      )
+      .join('')}
+    ${editing ? `<div class="nav-add" id="add-cat">&#65291; 新增分類</div>` : ''}
+  `;
+  subnav.querySelectorAll('[data-cat] span').forEach((el) => {
+    el.addEventListener('click', () => navigate(['works', 'cat', el.parentElement.dataset.cat]));
   });
+  subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteCategory(el.dataset.delCat);
+    });
+  });
+  const addCat = subnav.querySelector('#add-cat');
+  if (addCat) {
+    addCat.addEventListener('click', () => {
+      const name = prompt('新分類名稱：');
+      if (name && name.trim()) addCategory(name.trim());
+    });
+  }
 }
 
 function renderShell() {
@@ -39,6 +59,7 @@ function renderShell() {
   });
   renderWorksSubnav();
   window.addEventListener('works:updated', () => renderWorksSubnav());
+  window.addEventListener('works:editmode-changed', () => renderWorksSubnav());
 
   const logoutEl = document.getElementById('logout-link');
   if (ctx.authed) {
@@ -74,7 +95,8 @@ async function onRoute(path) {
 
   if (section === 'works') {
     await renderWorksView(container, path.slice(1), ctx);
-    await renderWorksSubnav(path[1]);
+    const activeCategoryId = path[1] === 'cat' ? path[2] : null;
+    await renderWorksSubnav(activeCategoryId);
   } else if (section === 'diagrams') {
     renderPlaceholder(container, '圖解');
   } else if (section === 'materials') {

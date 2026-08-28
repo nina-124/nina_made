@@ -5,42 +5,49 @@ const DATA_PATH = 'data/works-public.json';
 let cache = null;
 let sha = null;
 let editMode = false;
+const localPreviewCache = new Map();
+
+function emptyData() {
+  return { categories: [], works: [] };
+}
 
 async function loadPublicData() {
   if (cache) return cache;
   try {
     const res = await fetch(`./${DATA_PATH}?t=${Date.now()}`, { cache: 'no-store' });
-    cache = res.ok ? await res.json() : { items: [] };
+    cache = res.ok ? await res.json() : emptyData();
   } catch {
-    cache = { items: [] };
+    cache = emptyData();
   }
-  if (!cache.items) cache.items = [];
+  if (!cache.categories) cache.categories = [];
+  if (!cache.works) cache.works = [];
   return cache;
-}
-
-export async function getTopLevelCategories() {
-  const data = await loadPublicData();
-  return (data.items || []).filter((i) => i.type === 'category');
 }
 
 async function ensureEditableData(token) {
   const result = await getJsonFile(PUBLIC_REPO, DATA_PATH, token);
-  cache = result.data || { items: [] };
-  if (!cache.items) cache.items = [];
+  cache = result.data || emptyData();
+  if (!cache.categories) cache.categories = [];
+  if (!cache.works) cache.works = [];
   sha = result.sha;
   return cache;
 }
 
-function findNode(path) {
-  let node = { items: cache.items };
-  const trail = [];
-  for (const id of path) {
-    const found = (node.items || []).find((i) => i.id === id);
-    if (!found) break;
-    trail.push(found);
-    node = found;
-  }
-  return { node, trail };
+export async function getCategories() {
+  const data = await loadPublicData();
+  return data.categories;
+}
+
+export function isEditMode() {
+  return editMode;
+}
+
+function notifyUpdated() {
+  window.dispatchEvent(new CustomEvent('works:updated'));
+}
+
+function notifyEditModeChanged() {
+  window.dispatchEvent(new CustomEvent('works:editmode-changed'));
 }
 
 function slugify(name) {
@@ -70,123 +77,102 @@ function resizeImageToDataUrl(file, maxWidth = 800) {
   });
 }
 
-function openAddModal(onSubmit) {
+async function commitCache(token, message) {
+  const res = await putJsonFile(PUBLIC_REPO, DATA_PATH, cache, sha, token, message);
+  sha = res.content.sha;
+}
+
+async function commitPendingWorkImage(work, token) {
+  if (!work.coverPending) return;
+  const path = `assets/img/works/${work.id}.jpg`;
+  const base64 = work.coverPending.split(',')[1];
+  await uploadImageFile(PUBLIC_REPO, path, base64, token, `更新作品照片 ${work.name}`);
+  localPreviewCache.set(work.id, work.coverPending);
+  work.cover = path;
+  delete work.coverPending;
+}
+
+function openWorkModal({ categories, existing }, onSubmit) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  const checkboxes = categories
+    .map(
+      (c) =>
+        `<label style="flex-direction:row; align-items:center; gap:8px; font-weight:400;">
+          <input type="checkbox" value="${c.id}" ${existing?.categoryIds?.includes(c.id) ? 'checked' : ''}> ${c.name}
+        </label>`
+    )
+    .join('');
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>新增</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? '編輯作品' : '新增作品'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>名稱 <input type="text" name="name" placeholder="請輸入名稱"></label>
-        <label>類型
-          <select name="type">
-            <option value="category">分類</option>
-            <option value="work">作品</option>
-          </select>
-        </label>
-        <label class="cover-field" style="display:none">封面照片 <input type="file" name="cover" accept="image/*"></label>
+        <label>名稱 <input type="text" name="name" placeholder="請輸入名稱" value="${existing?.name || ''}"></label>
+        <label>封面照片（${existing ? '不選則維持原圖' : '選填'}） <input type="file" name="cover" accept="image/*"></label>
+        ${
+          existing?.cover
+            ? `<label style="flex-direction:row; align-items:center; gap:8px; font-weight:400;">
+                <input type="checkbox" name="removeCover"> 移除目前的照片
+               </label>`
+            : ''
+        }
+        <label>分類（可複選）</label>
+        <div style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto;">
+          ${checkboxes || '<span style="color:#a7b39c; font-size:13px;">還沒有任何分類，先在左側新增分類</span>'}
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
-          <button type="button" class="btn btn-primary" data-submit>新增</button>
+          <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
         </div>
       </div>
     </div>
   `;
   document.body.appendChild(overlay);
-
-  const typeSelect = overlay.querySelector('select[name="type"]');
-  const coverField = overlay.querySelector('.cover-field');
-  typeSelect.addEventListener('change', () => {
-    coverField.style.display = typeSelect.value === 'work' ? 'flex' : 'none';
-  });
-
   const close = () => overlay.remove();
   overlay.querySelector('.close-x').addEventListener('click', close);
   overlay.querySelector('[data-cancel]').addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
   overlay.querySelector('[data-submit]').addEventListener('click', async () => {
     const name = overlay.querySelector('input[name="name"]').value.trim();
     if (!name) return;
-    const type = typeSelect.value;
+    const categoryIds = Array.from(overlay.querySelectorAll('input[type="checkbox"]:checked')).map(
+      (el) => el.value
+    );
     const fileInput = overlay.querySelector('input[name="cover"]');
     const file = fileInput.files[0];
     let coverPending = null;
-    if (type === 'work' && file) {
-      coverPending = await resizeImageToDataUrl(file);
-    }
-    onSubmit({ name, type, coverPending });
+    if (file) coverPending = await resizeImageToDataUrl(file);
+    const removeCover = overlay.querySelector('input[name="removeCover"]')?.checked || false;
+    onSubmit({ name, categoryIds, coverPending, removeCover });
     close();
   });
 }
 
-// GitHub Pages 部署新圖片需要約 30-60 秒，剛上傳完直接改抓遠端網址會短暫破圖，
-// 所以本次瀏覽階段繼續顯示本機預覽圖，下次重新整理才會改抓遠端網址。
-const localPreviewCache = new Map();
-
-async function commitPendingImages(token) {
-  async function walk(items) {
-    for (const item of items || []) {
-      if (item.coverPending) {
-        const path = `assets/img/works/${item.id}.jpg`;
-        const base64 = item.coverPending.split(',')[1];
-        await uploadImageFile(PUBLIC_REPO, path, base64, token, `新增作品照片 ${item.name}`);
-        localPreviewCache.set(item.id, item.coverPending);
-        item.cover = path;
-        delete item.coverPending;
+function renderCard(work, ctx) {
+  const src = work.coverPending || localPreviewCache.get(work.id) || work.cover;
+  return `
+    <div class="card" data-id="${work.id}">
+      ${
+        editMode
+          ? `<button class="del-btn" data-del="${work.id}" style="right:-8px;">&#10005;</button>
+             <button class="del-btn" data-edit="${work.id}" style="right:22px; color:var(--green-700);">&#9998;</button>`
+          : ''
       }
-      if (item.items) await walk(item.items);
-    }
-  }
-  await walk(cache.items);
+      <div class="card-thumb">${src ? `<img src="${src}" alt="${work.name}">` : ''}</div>
+      <div class="card-name">${work.name}</div>
+    </div>`;
 }
 
-function renderCrumb(trail, ctx) {
-  const crumbs = [
-    `<span class="crumb" data-path="">作品集</span>`,
-    ...trail.map(
-      (n, i) =>
-        `<span class="sep">|</span><span class="crumb" data-path="${trail
-          .slice(0, i + 1)
-          .map((t) => t.id)
-          .join('/')}">${n.name}</span>`
-    ),
-  ].join('');
-  return `<div class="breadcrumb">${crumbs}</div>`;
-}
-
-function bindCrumb(container, ctx) {
-  container.querySelectorAll('.crumb').forEach((el) => {
-    el.addEventListener('click', () => {
-      const p = el.dataset.path ? el.dataset.path.split('/') : [];
-      ctx.navigate(['works', ...p]);
-    });
-  });
-}
-
-function renderGrid(container, node, path, trail, ctx) {
-  const items = node.items || [];
-  const cardsHtml = items
-    .map(
-      (item) => `
-      <div class="card" data-id="${item.id}">
-        ${editMode ? `<button class="del-btn" data-del="${item.id}">&#10005;</button>` : ''}
-        <div class="card-thumb">${
-          (() => {
-            const src = item.coverPending || localPreviewCache.get(item.id) || item.cover;
-            return src ? `<img src="${src}" alt="${item.name}">` : '';
-          })()
-        }</div>
-        <div class="card-name">${item.name}</div>
-      </div>`
-    )
-    .join('');
+function renderGallery(container, data, filterCategoryId, ctx) {
+  const category = filterCategoryId ? data.categories.find((c) => c.id === filterCategoryId) : null;
+  const works = filterCategoryId
+    ? data.works.filter((w) => (w.categoryIds || []).includes(filterCategoryId))
+    : data.works;
 
   container.innerHTML = `
     <div class="topbar">
-      ${renderCrumb(trail, ctx)}
+      <div class="breadcrumb"><span>作品集${category ? ` | ${category.name}` : ''}</span></div>
       <div class="search-box">&#128269;<input placeholder="搜尋"></div>
       ${
         ctx.authed
@@ -197,39 +183,57 @@ function renderGrid(container, node, path, trail, ctx) {
       }
     </div>
     <div class="card-grid">
-      ${cardsHtml}
+      ${works.map((w) => renderCard(w, ctx)).join('')}
       ${editMode ? `<div class="card card-add" id="add-card">&#65291;</div>` : ''}
     </div>
-    ${!items.length && !editMode ? `<div class="empty-hint">目前還沒有內容</div>` : ''}
+    ${!works.length && !editMode ? `<div class="empty-hint">目前還沒有作品</div>` : ''}
   `;
-
-  bindCrumb(container, ctx);
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('.del-btn')) return;
-      ctx.navigate(['works', ...path, el.dataset.id]);
+      if (editMode) return;
+      if (e.target.closest('[data-del], [data-edit]')) return;
+      ctx.navigate(['works', 'item', el.dataset.id]);
     });
   });
 
   container.querySelectorAll('[data-del]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      node.items = (node.items || []).filter((i) => i.id !== el.dataset.del);
-      renderGrid(container, node, path, trail, ctx);
+      cache.works = cache.works.filter((w) => w.id !== el.dataset.del);
+      renderGallery(container, cache, filterCategoryId, ctx);
+    });
+  });
+
+  container.querySelectorAll('[data-edit]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const work = cache.works.find((w) => w.id === el.dataset.edit);
+      openWorkModal(
+        { categories: cache.categories, existing: work },
+        ({ name, categoryIds, coverPending, removeCover }) => {
+          work.name = name;
+          work.categoryIds = categoryIds;
+          if (removeCover) {
+            work.cover = null;
+            delete work.coverPending;
+            localPreviewCache.delete(work.id);
+          }
+          if (coverPending) work.coverPending = coverPending;
+          renderGallery(container, cache, filterCategoryId, ctx);
+        }
+      );
     });
   });
 
   const addCard = container.querySelector('#add-card');
   if (addCard) {
     addCard.addEventListener('click', () => {
-      openAddModal(({ name, type, coverPending }) => {
-        const newNode = { id: slugify(name), name, type };
-        if (type === 'category') newNode.items = [];
-        if (type === 'work' && coverPending) newNode.coverPending = coverPending;
-        node.items = node.items || [];
-        node.items.push(newNode);
-        renderGrid(container, node, path, trail, ctx);
+      openWorkModal({ categories: cache.categories, existing: null }, ({ name, categoryIds, coverPending }) => {
+        const work = { id: slugify(name), name, categoryIds };
+        if (coverPending) work.coverPending = coverPending;
+        cache.works.push(work);
+        renderGallery(container, cache, filterCategoryId, ctx);
       });
     });
   }
@@ -242,16 +246,18 @@ function renderGrid(container, node, path, trail, ctx) {
         if (!editMode) {
           await ensureEditableData(ctx.token);
           editMode = true;
-          const refreshed = findNode(path);
-          renderGrid(container, refreshed.node, path, refreshed.trail, ctx);
+          notifyEditModeChanged();
+          renderGallery(container, cache, filterCategoryId, ctx);
           return;
         }
-        await commitPendingImages(ctx.token);
-        const res = await putJsonFile(PUBLIC_REPO, DATA_PATH, cache, sha, ctx.token, '更新作品集');
-        sha = res.content.sha;
+        for (const work of cache.works) {
+          await commitPendingWorkImage(work, ctx.token);
+        }
+        await commitCache(ctx.token, '更新作品集');
         editMode = false;
-        renderGrid(container, node, path, trail, ctx);
-        window.dispatchEvent(new CustomEvent('works:updated'));
+        notifyEditModeChanged();
+        notifyUpdated();
+        renderGallery(container, cache, filterCategoryId, ctx);
       } catch (e) {
         alert(e.message);
         editToggle.disabled = false;
@@ -260,31 +266,50 @@ function renderGrid(container, node, path, trail, ctx) {
   }
 }
 
-function renderWorkDetail(container, node, trail, ctx) {
-  const src = localPreviewCache.get(node.id) || node.cover;
+function renderWorkDetail(container, work, ctx) {
+  const src = localPreviewCache.get(work.id) || work.cover;
   container.innerHTML = `
-    <div class="topbar">${renderCrumb(trail, ctx)}</div>
-    <div class="work-detail-cover">${src ? `<img src="${src}" alt="${node.name}">` : ''}</div>
-    <h2 class="work-detail-name">${node.name}</h2>
+    <div class="topbar"><div class="breadcrumb"><span class="crumb" data-back>作品集</span> <span class="sep">|</span> ${work.name}</div></div>
+    <div class="work-detail-cover">${src ? `<img src="${src}" alt="${work.name}">` : ''}</div>
+    <h2 class="work-detail-name">${work.name}</h2>
     <div class="placeholder-panel">
       ${
         ctx.authed
-          ? `線材需求、圖解表格、圖文區塊尚在開發中，之後會接上私有 repo 的資料。`
-          : `詳細的線材需求與圖解筆記僅創作者本人可見。`
+          ? `線材需求、圖解表格、圖文區塊這類創作筆記，改到「圖解」功能裡獨立管理。`
+          : `詳細的線材需求與圖解筆記僅創作者本人可見（在「圖解」功能裡）。`
       }
     </div>
   `;
-  bindCrumb(container, ctx);
+  container.querySelector('[data-back]').addEventListener('click', () => ctx.navigate(['works']));
+}
+
+// --- 給 sidebar（main.js）用來管理分類清單 ---
+export function addCategory(name) {
+  cache.categories.push({ id: slugify(name), name });
+  notifyUpdated();
+}
+
+export function deleteCategory(id) {
+  cache.categories = cache.categories.filter((c) => c.id !== id);
+  cache.works.forEach((w) => {
+    w.categoryIds = (w.categoryIds || []).filter((cid) => cid !== id);
+  });
+  notifyUpdated();
 }
 
 export async function renderWorksView(container, path, ctx) {
-  await loadPublicData();
-  const { node, trail } = findNode(path);
+  const data = await loadPublicData();
 
-  if (node.type === 'work') {
-    renderWorkDetail(container, node, trail, ctx);
+  if (path[0] === 'item') {
+    const work = data.works.find((w) => w.id === path[1]);
+    if (!work) {
+      container.innerHTML = `<div class="empty-hint">找不到這個作品</div>`;
+      return;
+    }
+    renderWorkDetail(container, work, ctx);
     return;
   }
 
-  renderGrid(container, node, path, trail, ctx);
+  const filterCategoryId = path[0] === 'cat' ? path[1] : null;
+  renderGallery(container, data, filterCategoryId, ctx);
 }
