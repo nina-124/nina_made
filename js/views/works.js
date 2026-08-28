@@ -117,6 +117,10 @@ function openAddModal(onSubmit) {
   });
 }
 
+// GitHub Pages 部署新圖片需要約 30-60 秒，剛上傳完直接改抓遠端網址會短暫破圖，
+// 所以本次瀏覽階段繼續顯示本機預覽圖，下次重新整理才會改抓遠端網址。
+const localPreviewCache = new Map();
+
 async function commitPendingImages(token) {
   async function walk(items) {
     for (const item of items || []) {
@@ -124,6 +128,7 @@ async function commitPendingImages(token) {
         const path = `assets/img/works/${item.id}.jpg`;
         const base64 = item.coverPending.split(',')[1];
         await uploadImageFile(PUBLIC_REPO, path, base64, token, `新增作品照片 ${item.name}`);
+        localPreviewCache.set(item.id, item.coverPending);
         item.cover = path;
         delete item.coverPending;
       }
@@ -164,9 +169,10 @@ function renderGrid(container, node, path, trail, ctx) {
       <div class="card" data-id="${item.id}">
         ${editMode ? `<button class="del-btn" data-del="${item.id}">&#10005;</button>` : ''}
         <div class="card-thumb">${
-          item.cover || item.coverPending
-            ? `<img src="${item.coverPending || item.cover}" alt="${item.name}">`
-            : ''
+          (() => {
+            const src = item.coverPending || localPreviewCache.get(item.id) || item.cover;
+            return src ? `<img src="${src}" alt="${item.name}">` : '';
+          })()
         }</div>
         <div class="card-name">${item.name}</div>
       </div>`
