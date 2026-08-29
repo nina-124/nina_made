@@ -198,6 +198,30 @@ function renderCard(work, ctx) {
     </div>`;
 }
 
+function openImageLightbox(work) {
+  const src = work.coverPending || localPreviewCache.get(work.id) || work.cover;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box" style="width:auto; max-width:90vw; background:#fff;">
+      <div class="modal-header"><span>${work.name}</span><span class="close-x">&#10005;</span></div>
+      <div style="padding:16px; display:flex; justify-content:center;">
+        ${
+          src
+            ? `<img src="${src}" alt="${work.name}" style="max-width:100%; max-height:70vh; border-radius:12px; display:block;">`
+            : '<div class="empty-hint">尚未上傳照片</div>'
+        }
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.close-x').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
 function renderGallery(container, data, filterCategoryId, ctx) {
   const category = filterCategoryId ? data.categories.find((c) => c.id === filterCategoryId) : null;
   const works = filterCategoryId
@@ -227,7 +251,8 @@ function renderGallery(container, data, filterCategoryId, ctx) {
     el.addEventListener('click', (e) => {
       if (editMode) return;
       if (e.target.closest('[data-del], [data-edit]')) return;
-      ctx.navigate(['works', 'item', el.dataset.id]);
+      const work = works.find((w) => w.id === el.dataset.id);
+      openImageLightbox(work);
     });
   });
 
@@ -300,23 +325,6 @@ function renderGallery(container, data, filterCategoryId, ctx) {
   }
 }
 
-function renderWorkDetail(container, work, ctx) {
-  const src = localPreviewCache.get(work.id) || work.cover;
-  container.innerHTML = `
-    <div class="topbar"><div class="breadcrumb"><span class="crumb" data-back>作品集</span> <span class="sep">|</span> ${work.name}</div></div>
-    <div class="work-detail-cover">${src ? `<img src="${src}" alt="${work.name}">` : ''}</div>
-    <h2 class="work-detail-name">${work.name}</h2>
-    <div class="placeholder-panel">
-      ${
-        ctx.authed
-          ? `線材需求、圖解表格、圖文區塊這類創作筆記，改到「圖解」功能裡獨立管理。`
-          : `詳細的線材需求與圖解筆記僅創作者本人可見（在「圖解」功能裡）。`
-      }
-    </div>
-  `;
-  container.querySelector('[data-back]').addEventListener('click', () => ctx.navigate(['works']));
-}
-
 // --- 給 sidebar（main.js）用來管理分類清單 ---
 export function addCategory(name) {
   cache.categories.push({ id: slugify(name), name });
@@ -333,17 +341,6 @@ export function deleteCategory(id) {
 
 export async function renderWorksView(container, path, ctx) {
   const data = await loadPublicData();
-
-  if (path[0] === 'item') {
-    const work = data.works.find((w) => w.id === path[1]);
-    if (!work) {
-      container.innerHTML = `<div class="empty-hint">找不到這個作品</div>`;
-      return;
-    }
-    renderWorkDetail(container, work, ctx);
-    return;
-  }
-
   const filterCategoryId = path[0] === 'cat' ? path[1] : null;
   renderGallery(container, data, filterCategoryId, ctx);
 }
