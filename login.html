@@ -88,43 +88,6 @@
     line-height: 1;
   }
 
-  /* --- form --- */
-  form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .input-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    background: #ffffff;
-    border-radius: 18px;
-    padding: 14px 20px;
-    box-shadow: 0 6px 16px rgba(63, 107, 58, 0.14), inset 0 0 0 1px rgba(63, 107, 58, 0.06);
-  }
-  .input-group svg {
-    width: 22px;
-    height: 22px;
-    color: var(--green-700);
-    flex-shrink: 0;
-  }
-  .input-group input {
-    border: none;
-    outline: none;
-    flex: 1;
-    font-family: 'Noto Sans TC', sans-serif;
-    font-size: 15px;
-    color: var(--text-dark);
-    background: transparent;
-  }
-  .input-group input::placeholder {
-    color: var(--text-grey);
-  }
-
   .login-btn {
     margin-top: 10px;
     width: 100%;
@@ -165,61 +128,41 @@
 
     <h1 class="brand-title">Nina.<span>&#8202;_&#8202;</span>.craft</h1>
 
-    <form id="login-form">
-      <label class="input-group">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <path d="M3 7l9 6 9-6"/>
-        </svg>
-        <input type="text" id="username" placeholder="請輸入暱稱" autocomplete="username">
-      </label>
+    <p id="login-error" style="display:none; color:#b23a2f; font-size:13px; margin:0 0 16px; text-align:center;"></p>
 
-      <label class="input-group">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="15" r="4"/>
-          <path d="M11 12l9-9M17 6l3 3M14 9l2 2"/>
-        </svg>
-        <input type="password" id="token" placeholder="請貼上 GitHub Token" autocomplete="current-password">
-      </label>
-
-      <p id="login-error" style="display:none; color:#b23a2f; font-size:13px; margin:0; text-align:center;"></p>
-
-      <button type="submit" class="login-btn" id="login-btn">登&#8202;&#8202;入</button>
-    </form>
+    <button type="button" class="login-btn" id="login-btn">使用 GitHub 登入</button>
   </div>
 
   <script type="module">
-    import { login } from './js/auth.js';
+    import { getGithubLoginUrl, loginWithCode } from './js/auth.js';
 
-    const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');
     const btn = document.getElementById('login-btn');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const token = document.getElementById('token').value.trim();
-      errorEl.style.display = 'none';
+    function showError(message) {
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+    }
 
-      if (!token) {
-        errorEl.textContent = '請輸入 GitHub Token';
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      btn.disabled = true;
-      const originalText = btn.textContent;
-      btn.textContent = '登入中...';
-      try {
-        await login(username, token);
-        location.href = 'index.html';
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
+    btn.addEventListener('click', () => {
+      location.href = getGithubLoginUrl();
     });
+
+    const code = new URLSearchParams(location.search).get('code');
+    if (code) {
+      btn.disabled = true;
+      btn.textContent = '登入中...';
+      loginWithCode(code)
+        .then(() => {
+          location.href = 'index.html';
+        })
+        .catch((err) => {
+          showError(err.message);
+          btn.disabled = false;
+          btn.textContent = '使用 GitHub 登入';
+          history.replaceState(null, '', location.pathname);
+        });
+    }
   </script>
 </body>
 </html>
