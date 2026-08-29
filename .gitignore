@@ -2,3 +2,4 @@ craft/
 web示意圖/
 Thumbs.db
 .DS_Store
+*.code-workspace

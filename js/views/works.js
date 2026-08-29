@@ -92,6 +92,40 @@ async function commitPendingWorkImage(work, token) {
   delete work.coverPending;
 }
 
+export function openCategoryModal(onSubmit) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-header"><span>新增分類</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-body">
+        <label>分類名稱 <input type="text" name="name" placeholder="例如：寶可夢"></label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-cancel>取消</button>
+          <button type="button" class="btn btn-primary" data-submit>新增</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.close-x').addEventListener('click', close);
+  overlay.querySelector('[data-cancel]').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  const input = overlay.querySelector('input[name="name"]');
+  input.focus();
+  const submit = () => {
+    const name = input.value.trim();
+    if (!name) return;
+    onSubmit({ name });
+    close();
+  };
+  overlay.querySelector('[data-submit]').addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submit();
+  });
+}
+
 function openWorkModal({ categories, existing }, onSubmit) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';

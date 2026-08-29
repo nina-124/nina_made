@@ -1,6 +1,13 @@
 import { getAuth, clearAuth } from './auth.js';
 import { onRouteChange, navigate, startRouter } from './router.js';
-import { renderWorksView, getCategories, isEditMode, addCategory, deleteCategory } from './views/works.js';
+import {
+  renderWorksView,
+  getCategories,
+  isEditMode,
+  addCategory,
+  deleteCategory,
+  openCategoryModal,
+} from './views/works.js';
 
 const auth = getAuth();
 const ctx = {
@@ -39,8 +46,7 @@ async function renderWorksSubnav(activeCategoryId) {
   const addCat = subnav.querySelector('#add-cat');
   if (addCat) {
     addCat.addEventListener('click', () => {
-      const name = prompt('新分類名稱：');
-      if (name && name.trim()) addCategory(name.trim());
+      openCategoryModal(({ name }) => addCategory(name));
     });
   }
 }
