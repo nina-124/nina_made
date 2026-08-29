@@ -51,6 +51,16 @@ export async function putJsonFile(repo, path, dataObj, sha, token, message) {
   return res.json();
 }
 
+export async function getRawFileBase64(repo, path, token) {
+  const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, {
+    headers: authHeaders(token),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`讀取 ${path} 失敗（${res.status}）`);
+  const json = await res.json();
+  return json.content;
+}
+
 export async function uploadImageFile(repo, path, base64Content, token, message) {
   const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, {
     method: 'PUT',

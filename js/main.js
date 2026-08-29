@@ -8,6 +8,7 @@ import {
   deleteCategory,
   openCategoryModal,
 } from './views/works.js';
+import { renderDiagramsView } from './views/diagrams.js';
 
 const auth = getAuth();
 const ctx = {
@@ -104,7 +105,7 @@ async function onRoute(path) {
     const activeCategoryId = path[1] === 'cat' ? path[2] : null;
     await renderWorksSubnav(activeCategoryId);
   } else if (section === 'diagrams') {
-    renderPlaceholder(container, '圖解');
+    await renderDiagramsView(container, path.slice(1), ctx);
   } else if (section === 'materials') {
     renderPlaceholder(container, '綫材&工具');
   } else if (section === 'settings') {
