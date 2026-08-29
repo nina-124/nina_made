@@ -1,4 +1,22 @@
 {
-  "categories": [],
-  "works": []
+  "categories": [
+    {
+      "id": "動漫-knre",
+      "name": "動漫"
+    },
+    {
+      "id": "迪士尼-krcy",
+      "name": "迪士尼"
+    }
+  ],
+  "works": [
+    {
+      "id": "名偵探柯南-犯人先生-onz7",
+      "name": "名偵探柯南-犯人先生",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "cover": "assets/img/works/名偵探柯南-犯人先生-onz7.jpg"
+    }
+  ]
 }
