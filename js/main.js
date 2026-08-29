@@ -2,13 +2,20 @@ import { getAuth, clearAuth } from './auth.js';
 import { onRouteChange, navigate, startRouter } from './router.js';
 import {
   renderWorksView,
-  getCategories,
-  isEditMode,
-  addCategory,
-  deleteCategory,
-  openCategoryModal,
+  getCategories as getWorksCategories,
+  isEditMode as isWorksEditMode,
+  addCategory as addWorksCategory,
+  deleteCategory as deleteWorksCategory,
+  openCategoryModal as openWorksCategoryModal,
 } from './views/works.js';
-import { renderDiagramsView } from './views/diagrams.js';
+import {
+  renderDiagramsView,
+  getCategoriesAt as getDiagramsCategoriesAt,
+  isEditMode as isDiagramsEditMode,
+  addCategoryAt as addDiagramsCategoryAt,
+  deleteCategoryAt as deleteDiagramsCategoryAt,
+  openCategoryModal as openDiagramsCategoryModal,
+} from './views/diagrams.js';
 
 const auth = getAuth();
 const ctx = {
@@ -18,11 +25,13 @@ const ctx = {
   navigate,
 };
 
+let currentDiagramsPath = [];
+
 async function renderWorksSubnav(activeCategoryId) {
   const subnav = document.getElementById('works-subnav');
   if (!subnav) return;
-  const categories = await getCategories();
-  const editing = isEditMode();
+  const categories = await getWorksCategories();
+  const editing = isWorksEditMode();
   subnav.innerHTML = `
     ${categories
       .map(
@@ -33,7 +42,7 @@ async function renderWorksSubnav(activeCategoryId) {
       </div>`
       )
       .join('')}
-    ${editing ? `<div class="nav-add" id="add-cat">&#65291; 新增分類</div>` : ''}
+    ${editing ? `<div class="nav-add" id="add-works-cat">&#65291; 新增分類</div>` : ''}
   `;
   subnav.querySelectorAll('[data-cat] span').forEach((el) => {
     el.addEventListener('click', () => navigate(['works', 'cat', el.parentElement.dataset.cat]));
@@ -41,13 +50,51 @@ async function renderWorksSubnav(activeCategoryId) {
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      deleteCategory(el.dataset.delCat);
+      deleteWorksCategory(el.dataset.delCat);
     });
   });
-  const addCat = subnav.querySelector('#add-cat');
+  const addCat = subnav.querySelector('#add-works-cat');
   if (addCat) {
     addCat.addEventListener('click', () => {
-      openCategoryModal(({ name }) => addCategory(name));
+      openWorksCategoryModal(({ name }) => addWorksCategory(name));
+    });
+  }
+}
+
+async function renderDiagramsSubnav() {
+  const subnav = document.getElementById('diagrams-subnav');
+  if (!subnav || !ctx.authed) return;
+  const categories = await getDiagramsCategoriesAt(currentDiagramsPath, ctx.token);
+  const editing = isDiagramsEditMode();
+  subnav.innerHTML = `
+    ${categories
+      .map(
+        (c) => `
+      <div class="nav-subitem" data-cat="${c.id}" style="display:flex; align-items:center;">
+        <span style="flex:1; cursor:pointer;">${c.name}</span>
+        ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
+      </div>`
+      )
+      .join('')}
+    ${editing ? `<div class="nav-add" id="add-diagrams-cat">&#65291; 新增分類</div>` : ''}
+  `;
+  subnav.querySelectorAll('[data-cat] span').forEach((el) => {
+    el.addEventListener('click', () => navigate(['diagrams', ...currentDiagramsPath, el.parentElement.dataset.cat]));
+  });
+  subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteDiagramsCategoryAt(currentDiagramsPath, el.dataset.delCat);
+      renderDiagramsSubnav();
+    });
+  });
+  const addCat = subnav.querySelector('#add-diagrams-cat');
+  if (addCat) {
+    addCat.addEventListener('click', () => {
+      openDiagramsCategoryModal(({ name, coverPending }) => {
+        addDiagramsCategoryAt(currentDiagramsPath, { name, coverPending });
+        renderDiagramsSubnav();
+      });
     });
   }
 }
@@ -58,6 +105,7 @@ function renderShell() {
     <button class="nav-item" data-nav="works">&#129506; 作品集</button>
     <div class="nav-section" id="works-subnav"></div>
     ${ctx.authed ? `<button class="nav-item" data-nav="diagrams">&#129737; 圖解</button>` : ''}
+    ${ctx.authed ? `<div class="nav-section" id="diagrams-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="materials">&#129525; 綫材&工具</button>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="settings">&#9986; 設定</button>` : ''}
   `;
@@ -67,6 +115,8 @@ function renderShell() {
   renderWorksSubnav();
   window.addEventListener('works:updated', () => renderWorksSubnav());
   window.addEventListener('works:editmode-changed', () => renderWorksSubnav());
+  window.addEventListener('diagrams:updated', () => renderDiagramsSubnav());
+  window.addEventListener('diagrams:editmode-changed', () => renderDiagramsSubnav());
 
   const logoutEl = document.getElementById('logout-link');
   if (ctx.authed) {
@@ -87,6 +137,13 @@ function renderPlaceholder(container, title) {
   container.innerHTML = `<div class="placeholder-panel">${title} 尚在開發中。</div>`;
 }
 
+function updateSubnavVisibility(section) {
+  const worksSubnav = document.getElementById('works-subnav');
+  const diagramsSubnav = document.getElementById('diagrams-subnav');
+  if (worksSubnav) worksSubnav.hidden = section !== 'works';
+  if (diagramsSubnav) diagramsSubnav.hidden = section !== 'diagrams';
+}
+
 async function onRoute(path) {
   const container = document.getElementById('main-content');
   const section = path[0] || 'works';
@@ -94,6 +151,7 @@ async function onRoute(path) {
   document.querySelectorAll('.nav-item').forEach((el) => {
     el.classList.toggle('active', el.dataset.nav === section);
   });
+  updateSubnavVisibility(section);
 
   if (section !== 'works' && !ctx.authed) {
     container.innerHTML = `<div class="placeholder-panel">這個內容只有登入才能查看。</div>`;
@@ -105,7 +163,9 @@ async function onRoute(path) {
     const activeCategoryId = path[1] === 'cat' ? path[2] : null;
     await renderWorksSubnav(activeCategoryId);
   } else if (section === 'diagrams') {
-    await renderDiagramsView(container, path.slice(1), ctx);
+    currentDiagramsPath = path.slice(1);
+    await renderDiagramsView(container, currentDiagramsPath, ctx);
+    await renderDiagramsSubnav();
   } else if (section === 'materials') {
     renderPlaceholder(container, '綫材&工具');
   } else if (section === 'settings') {
