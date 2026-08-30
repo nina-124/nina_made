@@ -64,7 +64,7 @@ async function renderWorksSubnav(activeCategoryId) {
 async function renderDiagramsSubnav() {
   const subnav = document.getElementById('diagrams-subnav');
   if (!subnav || !ctx.authed) return;
-  const categories = await getDiagramsCategoriesAt(currentDiagramsPath, ctx.token);
+  const categories = await getDiagramsCategoriesAt([], ctx.token);
   const editing = isDiagramsEditMode();
   subnav.innerHTML = `
     ${categories
@@ -79,12 +79,12 @@ async function renderDiagramsSubnav() {
     ${editing ? `<div class="nav-add" id="add-diagrams-cat">&#65291; 新增分類</div>` : ''}
   `;
   subnav.querySelectorAll('[data-cat] span').forEach((el) => {
-    el.addEventListener('click', () => navigate(['diagrams', ...currentDiagramsPath, el.parentElement.dataset.cat]));
+    el.addEventListener('click', () => navigate(['diagrams', el.parentElement.dataset.cat]));
   });
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      deleteDiagramsCategoryAt(currentDiagramsPath, el.dataset.delCat);
+      deleteDiagramsCategoryAt([], el.dataset.delCat);
       renderDiagramsSubnav();
     });
   });
@@ -92,7 +92,7 @@ async function renderDiagramsSubnav() {
   if (addCat) {
     addCat.addEventListener('click', () => {
       openDiagramsCategoryModal(({ name, coverPending }) => {
-        addDiagramsCategoryAt(currentDiagramsPath, { name, coverPending });
+        addDiagramsCategoryAt([], { name, coverPending });
         renderDiagramsSubnav();
       });
     });
