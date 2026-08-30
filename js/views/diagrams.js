@@ -417,13 +417,19 @@ function bindColorPalette(container) {
 }
 
 function renderRowAttachment(block) {
+  const width = block.width || 150;
   return `
     <div class="row-attach" data-block="${block.id}">
       ${editMode ? `<button class="del-btn" data-del-block>&#10005;</button>` : ''}
       ${
         block.type === 'image'
-          ? `<div class="block-image" data-block-thumb="${block.id}"></div>
-             ${editMode ? `<input type="file" accept="image/*" data-block-file>` : ''}`
+          ? `<div class="block-image" data-block-thumb="${block.id}" style="width:${width}px;"></div>
+             ${
+               editMode
+                 ? `<input type="file" accept="image/*" data-block-file>
+                    <label class="block-size">大小(px) <input type="number" min="40" max="600" step="10" value="${width}" data-block-width></label>`
+                 : ''
+             }`
           : editMode
             ? `<textarea data-block-text>${block.content || ''}</textarea>`
             : `<p class="block-text">${(block.content || '').replace(/\n/g, '<br>')}</p>`
@@ -578,12 +584,19 @@ async function bindRowAttachments(container, node, ctx) {
     } else if (block.type === 'image') {
       const thumb = el.querySelector('[data-block-thumb]');
       const fileInput = el.querySelector('[data-block-file]');
+      const widthInput = el.querySelector('[data-block-width]');
       if (fileInput) {
         fileInput.addEventListener('change', async () => {
           const file = fileInput.files[0];
           if (!file) return;
-          block.content = await resizeImageToDataUrl(file, 1000);
+          block.content = await resizeImageToDataUrl(file, 600);
           if (thumb) thumb.innerHTML = `<img src="${block.content}" alt="">`;
+        });
+      }
+      if (widthInput) {
+        widthInput.addEventListener('input', () => {
+          block.width = Number(widthInput.value) || 150;
+          if (thumb) thumb.style.width = `${block.width}px`;
         });
       }
       if (thumb) {
