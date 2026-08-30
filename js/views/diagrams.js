@@ -21,7 +21,7 @@ async function loadData(token) {
 }
 
 function findNode(path) {
-  let node = { items: cache.items };
+  let node = cache;
   const trail = [];
   for (const id of path) {
     const found = (node.items || []).find((i) => i.id === id);
