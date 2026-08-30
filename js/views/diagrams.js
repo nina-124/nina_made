@@ -257,9 +257,13 @@ async function renderTree(container, node, path, trail, ctx) {
         )
         .join('')}
       ${
+        editMode && path.length > 0
+          ? `<div class="card card-add card-add-labeled" id="add-card" title="新增圖解筆記">&#65291; 圖解筆記</div>`
+          : ''
+      }
+      ${
         editMode
-          ? `<div class="card card-add card-add-labeled" id="add-card" title="新增圖解筆記">&#65291; 圖解筆記</div>
-             <div class="card card-add card-add-labeled" id="add-category-card" title="新增分類">&#65291; 分類</div>`
+          ? `<div class="card card-add card-add-labeled" id="add-category-card" title="新增分類">&#65291; 分類</div>`
           : ''
       }
     </div>
@@ -376,29 +380,63 @@ function bindColorPalette(container) {
   }
 }
 
-function renderTableSection(table) {
+function renderRowAttachment(block) {
+  return `
+    <div class="row-attach" data-block="${block.id}">
+      ${editMode ? `<button class="del-btn" data-del-block>&#10005;</button>` : ''}
+      ${
+        block.type === 'image'
+          ? `<div class="block-image" data-block-thumb="${block.id}"></div>
+             ${editMode ? `<input type="file" accept="image/*" data-block-file>` : ''}`
+          : editMode
+            ? `<textarea data-block-text>${block.content || ''}</textarea>`
+            : `<p class="block-text">${(block.content || '').replace(/\n/g, '<br>')}</p>`
+      }
+    </div>
+  `;
+}
+
+function renderRowAttachments(rowBlocks) {
+  return `
+    <div class="row-attachments">
+      ${rowBlocks.map(renderRowAttachment).join('')}
+      ${
+        editMode
+          ? `<div class="row-attach-add">
+              <button type="button" class="link-btn" data-add-row-image>&#65291;圖片</button>
+              <button type="button" class="link-btn" data-add-row-text>&#65291;文字</button>
+            </div>`
+          : ''
+      }
+    </div>
+  `;
+}
+
+function renderTableSection(table, node) {
   const rowsHtml = table.rows
-    .map(
-      (row) => `
-      <tr data-row="${row.id}">
-        <td>${
+    .map((row) => {
+      const rowBlocks = node.blocks.filter((b) => b.alignRow === row.id);
+      return `
+      <div class="diagram-grid-row" data-row="${row.id}">
+        <div class="cell">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="round">${row.round || ''}</span>`
             : `<span>${row.round || ''}</span>`
-        }</td>
-        <td>${
+        }</div>
+        <div class="cell">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="stitch">${row.stitch || ''}</span>`
             : `<span>${row.stitch || ''}</span>`
-        }</td>
-        <td>${
+        }</div>
+        <div class="cell">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="total">${row.total || ''}</span>`
             : `<span>${row.total || ''}</span>`
-        }</td>
-        ${editMode ? `<td><button class="del-btn" data-del-row style="position:static;">&#10005;</button></td>` : ''}
-      </tr>`
-    )
+        }</div>
+        ${editMode ? `<div class="cell"><button class="del-btn" data-del-row style="position:static;">&#10005;</button></div>` : ''}
+        <div class="cell attach-cell">${renderRowAttachments(rowBlocks)}</div>
+      </div>`;
+    })
     .join('');
 
   return `
@@ -411,28 +449,24 @@ function renderTableSection(table) {
             : `<h3>${table.part}</h3>`
         }
       </div>
-      <table class="diagram-rows">
-        <colgroup>
-          <col class="col-narrow">
-          <col>
-          <col class="col-narrow">
-          ${editMode ? '<col style="width:32px">' : ''}
-        </colgroup>
-        <thead><tr><th>圈數</th><th>針法</th><th>總針數</th>${editMode ? '<th></th>' : ''}</tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+      <div class="diagram-grid ${editMode ? 'is-editing' : ''}">
+        <div class="diagram-grid-row diagram-grid-head">
+          <div class="cell">圈數</div><div class="cell">針法</div><div class="cell">總針數</div>${editMode ? '<div class="cell"></div>' : ''}<div class="cell">補充圖文</div>
+        </div>
+        ${rowsHtml}
+      </div>
       ${editMode ? `<button class="btn btn-secondary" data-add-row style="margin-top:8px;">&#65291; 新增列</button>` : ''}
     </div>
   `;
 }
 
-function bindTableSection(container, table, onStructureChange) {
+function bindTableSection(container, table, node, onStructureChange) {
   const el = container.querySelector(`[data-table="${table.id}"]`);
   if (!el) return;
 
   el.querySelectorAll('[contenteditable][data-field]').forEach((cell) => {
     cell.addEventListener('input', () => {
-      const rowId = cell.closest('tr').dataset.row;
+      const rowId = cell.closest('[data-row]').dataset.row;
       const row = table.rows.find((r) => r.id === rowId);
       row[cell.dataset.field] = cell.innerHTML;
     });
@@ -440,8 +474,9 @@ function bindTableSection(container, table, onStructureChange) {
 
   el.querySelectorAll('[data-del-row]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const rowId = btn.closest('tr').dataset.row;
+      const rowId = btn.closest('[data-row]').dataset.row;
       table.rows = table.rows.filter((r) => r.id !== rowId);
+      node.blocks = node.blocks.filter((b) => b.alignRow !== rowId);
       onStructureChange();
     });
   });
@@ -467,86 +502,60 @@ function bindTableSection(container, table, onStructureChange) {
       onStructureChange();
     });
   }
-}
 
-function renderBlockSection(block, tables) {
-  return `
-    <div class="diagram-block" data-block="${block.id}" style="min-height:${block.height || 120}px;">
-      ${editMode ? `<button class="del-btn" data-del-block>&#10005;</button>` : ''}
-      ${
-        block.type === 'image'
-          ? `<div class="block-image" data-block-thumb="${block.id}"></div>
-             ${editMode ? `<input type="file" accept="image/*" data-block-file>` : ''}`
-          : editMode
-            ? `<textarea data-block-text style="min-height:${block.height || 120}px;">${block.content || ''}</textarea>`
-            : `<p class="block-text">${(block.content || '').replace(/\n/g, '<br>')}</p>`
-      }
-      ${
-        editMode
-          ? `<div class="block-controls">
-              <label class="block-height">高度(px)<input type="number" min="60" step="10" value="${block.height || 120}" data-block-height></label>
-              <label class="block-align">對齊
-                <select data-block-align>
-                  <option value="">不對齊表格</option>
-                  ${tables
-                    .map(
-                      (t) =>
-                        `<option value="${t.id}" ${block.alignPart === t.id ? 'selected' : ''}>${t.part}</option>`
-                    )
-                    .join('')}
-                </select>
-              </label>
-            </div>`
-          : ''
-      }
-    </div>
-  `;
-}
-
-async function bindBlockSection(container, block, ctx, onStructureChange) {
-  const el = container.querySelector(`[data-block="${block.id}"]`);
-  if (!el) return;
-
-  const delBtn = el.querySelector('[data-del-block]');
-  if (delBtn) delBtn.addEventListener('click', () => onStructureChange({ removeBlock: block.id }));
-
-  const heightInput = el.querySelector('[data-block-height]');
-  if (heightInput) {
-    heightInput.addEventListener('input', () => {
-      block.height = Number(heightInput.value) || 120;
-      el.style.minHeight = `${block.height}px`;
-    });
-  }
-
-  const alignSelect = el.querySelector('[data-block-align]');
-  if (alignSelect) {
-    alignSelect.addEventListener('change', () => {
-      block.alignPart = alignSelect.value || null;
+  el.querySelectorAll('[data-add-row-image]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rowId = btn.closest('[data-row]').dataset.row;
+      node.blocks.push({ id: newId(), type: 'image', content: '', alignRow: rowId });
       onStructureChange();
     });
-  }
+  });
 
-  if (block.type === 'text') {
-    const textarea = el.querySelector('[data-block-text]');
-    if (textarea) {
-      textarea.addEventListener('input', () => {
-        block.content = textarea.value;
-      });
-    }
-  } else if (block.type === 'image') {
-    const thumb = el.querySelector('[data-block-thumb]');
-    const fileInput = el.querySelector('[data-block-file]');
-    if (fileInput) {
-      fileInput.addEventListener('change', async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-        block.content = await resizeImageToDataUrl(file, 1000);
-        if (thumb) thumb.innerHTML = `<img src="${block.content}" alt="">`;
-      });
-    }
-    if (thumb) {
-      const src = block.content?.startsWith('data:') ? block.content : await resolveImageSrc(block.content, ctx.token);
-      if (src) thumb.innerHTML = `<img src="${src}" alt="">`;
+  el.querySelectorAll('[data-add-row-text]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rowId = btn.closest('[data-row]').dataset.row;
+      node.blocks.push({ id: newId(), type: 'text', content: '', alignRow: rowId });
+      onStructureChange();
+    });
+  });
+
+  el.querySelectorAll('[data-del-block]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const blockId = btn.closest('[data-block]').dataset.block;
+      node.blocks = node.blocks.filter((b) => b.id !== blockId);
+      onStructureChange();
+    });
+  });
+}
+
+async function bindRowAttachments(container, node, ctx) {
+  for (const block of node.blocks) {
+    const el = container.querySelector(`[data-block="${block.id}"]`);
+    if (!el) continue;
+    if (block.type === 'text') {
+      const textarea = el.querySelector('[data-block-text]');
+      if (textarea) {
+        textarea.addEventListener('input', () => {
+          block.content = textarea.value;
+        });
+      }
+    } else if (block.type === 'image') {
+      const thumb = el.querySelector('[data-block-thumb]');
+      const fileInput = el.querySelector('[data-block-file]');
+      if (fileInput) {
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          block.content = await resizeImageToDataUrl(file, 1000);
+          if (thumb) thumb.innerHTML = `<img src="${block.content}" alt="">`;
+        });
+      }
+      if (thumb) {
+        const src = block.content?.startsWith('data:')
+          ? block.content
+          : await resolveImageSrc(block.content, ctx.token);
+        if (src) thumb.innerHTML = `<img src="${src}" alt="">`;
+      }
     }
   }
 }
@@ -557,11 +566,6 @@ async function renderPatternEditor(container, node, trail, ctx) {
 
   const rerender = () => renderPatternEditor(container, node, trail, ctx);
 
-  const blocksFor = (tableId) => node.blocks.filter((b) => b.alignPart === tableId);
-  const unassignedBlocks = node.blocks.filter(
-    (b) => !b.alignPart || !node.tables.find((t) => t.id === b.alignPart)
-  );
-
   container.innerHTML = `
     <div class="topbar">
       ${renderCrumb(trail, ctx)}
@@ -569,8 +573,18 @@ async function renderPatternEditor(container, node, trail, ctx) {
     editMode ? '&#10003;' : '&#9998;'
   }</button>
     </div>
-    <div class="diagram-header">
-      <h2 class="work-detail-name">${node.name}</h2>
+    <div class="diagram-top">
+      <div class="diagram-top-left">
+        <h2 class="work-detail-name">${node.name}</h2>
+        <div class="diagram-yarn">
+          <label style="font-weight:700;">線材需求</label>
+          ${
+            editMode
+              ? `<textarea id="yarn-note" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #c7d8b8; padding:10px; font-family:inherit;">${node.yarnNote || ''}</textarea>`
+              : `<p class="block-text">${(node.yarnNote || '（尚未填寫）').replace(/\n/g, '<br>')}</p>`
+          }
+        </div>
+      </div>
       <div class="diagram-cover">
         <img data-cover-img alt="${node.name}" style="display:none;">
         ${
@@ -580,43 +594,10 @@ async function renderPatternEditor(container, node, trail, ctx) {
         }
       </div>
     </div>
-    <div class="diagram-yarn">
-      <label style="font-weight:700;">線材需求</label>
-      ${
-        editMode
-          ? `<textarea id="yarn-note" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #c7d8b8; padding:10px; font-family:inherit;">${node.yarnNote || ''}</textarea>`
-          : `<p class="block-text">${(node.yarnNote || '（尚未填寫）').replace(/\n/g, '<br>')}</p>`
-      }
-    </div>
     ${editMode ? renderColorPalette() : ''}
-    <div class="diagram-pairs">
-      ${node.tables
-        .map(
-          (t) => `
-        <div class="diagram-pair">
-          <div class="diagram-left">${renderTableSection(t)}</div>
-          <div class="diagram-right">${blocksFor(t.id)
-            .map((b) => renderBlockSection(b, node.tables))
-            .join('')}</div>
-        </div>`
-        )
-        .join('')}
-      <div class="diagram-pair">
-        <div class="diagram-left">
-          ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
-        </div>
-        <div class="diagram-right">
-          ${unassignedBlocks.map((b) => renderBlockSection(b, node.tables)).join('')}
-          ${
-            editMode
-              ? `<div class="modal-actions" style="justify-content:flex-start; gap:10px;">
-                  <button class="btn btn-secondary" id="add-image-block">&#65291; 新增圖片</button>
-                  <button class="btn btn-secondary" id="add-text-block">&#65291; 新增文字</button>
-                </div>`
-              : ''
-          }
-        </div>
-      </div>
+    <div class="diagram-tables">
+      ${node.tables.map((t) => renderTableSection(t, node)).join('')}
+      ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
     </div>
   `;
 
@@ -649,44 +630,21 @@ async function renderPatternEditor(container, node, trail, ctx) {
 
   const onTableStructureChange = (action) => {
     if (action?.removeTable) {
+      const removedRowIds = new Set(
+        (node.tables.find((t) => t.id === action.removeTable)?.rows || []).map((r) => r.id)
+      );
       node.tables = node.tables.filter((t) => t.id !== action.removeTable);
-      node.blocks.forEach((b) => {
-        if (b.alignPart === action.removeTable) b.alignPart = null;
-      });
+      node.blocks = node.blocks.filter((b) => !removedRowIds.has(b.alignRow));
     }
     rerender();
   };
-  node.tables.forEach((t) => bindTableSection(container, t, onTableStructureChange));
+  node.tables.forEach((t) => bindTableSection(container, t, node, onTableStructureChange));
+  await bindRowAttachments(container, node, ctx);
 
   const addTableBtn = container.querySelector('#add-table');
   if (addTableBtn) {
     addTableBtn.addEventListener('click', () => {
       node.tables.push({ id: newId(), part: '新部位', rows: [] });
-      rerender();
-    });
-  }
-
-  const onBlockStructureChange = (action) => {
-    if (action?.removeBlock) {
-      node.blocks = node.blocks.filter((b) => b.id !== action.removeBlock);
-    }
-    rerender();
-  };
-  for (const b of node.blocks) {
-    await bindBlockSection(container, b, ctx, onBlockStructureChange);
-  }
-
-  const addImageBlock = container.querySelector('#add-image-block');
-  if (addImageBlock) {
-    addImageBlock.addEventListener('click', () => {
-      node.blocks.push({ id: newId(), type: 'image', content: '', height: 200, alignPart: null });
-      rerender();
-    });
-  }
-  const addTextBlock = container.querySelector('#add-text-block');
-  if (addTextBlock) {
-    addTextBlock.addEventListener('click', () => {
-      node.blocks.push({ id: newId(), type: 'text', content: '', height: 120, alignPart: null });
       rerender();
     });
   }
