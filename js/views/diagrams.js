@@ -7,6 +7,24 @@ let sha = null;
 let editMode = false;
 const imageSrcCache = new Map();
 
+const LOCAL_IMG_CACHE_PREFIX = 'nina_craft_diagram_img:';
+
+function getLocalImageCache(path) {
+  try {
+    return localStorage.getItem(LOCAL_IMG_CACHE_PREFIX + path);
+  } catch {
+    return null;
+  }
+}
+
+function setLocalImageCache(path, dataUrl) {
+  try {
+    localStorage.setItem(LOCAL_IMG_CACHE_PREFIX + path, dataUrl);
+  } catch {
+    // 本機儲存空間已滿或無法使用時靜默略過，不影響功能，只是這張圖不會被快取
+  }
+}
+
 function emptyData() {
   return { items: [] };
 }
@@ -66,10 +84,16 @@ function resizeImageToDataUrl(file, maxWidth = 800) {
 async function resolveImageSrc(path, token) {
   if (!path) return null;
   if (imageSrcCache.has(path)) return imageSrcCache.get(path);
+  const cached = getLocalImageCache(path);
+  if (cached) {
+    imageSrcCache.set(path, cached);
+    return cached;
+  }
   const base64 = await getRawFileBase64(PRIVATE_REPO, path, token);
   if (!base64) return null;
   const dataUrl = `data:image/jpeg;base64,${base64}`;
   imageSrcCache.set(path, dataUrl);
+  setLocalImageCache(path, dataUrl);
   return dataUrl;
 }
 
@@ -80,6 +104,7 @@ async function commitPendingImages(items, token) {
       const base64 = item.coverPending.split(',')[1];
       await uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解封面 ${item.name}`);
       imageSrcCache.set(path, item.coverPending);
+      setLocalImageCache(path, item.coverPending);
       item.cover = path;
       delete item.coverPending;
     }
@@ -89,6 +114,7 @@ async function commitPendingImages(items, token) {
         const base64 = block.content.split(',')[1];
         await uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解圖片 ${item.name}`);
         imageSrcCache.set(path, block.content);
+        setLocalImageCache(path, block.content);
         block.content = path;
       }
     }
