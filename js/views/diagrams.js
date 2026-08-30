@@ -144,18 +144,25 @@ export function deleteCategoryAt(path, id) {
   notifyUpdated();
 }
 
-export function openCategoryModal(onSubmit) {
+export function openCategoryModal(onSubmit, existing) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>新增分類</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? '編輯分類' : '新增分類'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>分類名稱 <input type="text" name="name" placeholder="請輸入名稱"></label>
-        <label>封面照片（選填） <input type="file" name="cover" accept="image/*"></label>
+        <label>分類名稱 <input type="text" name="name" value="${existing?.name || ''}" placeholder="請輸入名稱"></label>
+        <label>封面照片（${existing ? '不選則維持原圖' : '選填'}） <input type="file" name="cover" accept="image/*"></label>
+        ${
+          existing?.cover
+            ? `<label style="flex-direction:row; align-items:center; gap:8px; font-weight:400;">
+                <input type="checkbox" name="removeCover"> 移除目前的照片
+               </label>`
+            : ''
+        }
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
-          <button type="button" class="btn btn-primary" data-submit>新增</button>
+          <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
         </div>
       </div>
     </div>
@@ -172,7 +179,8 @@ export function openCategoryModal(onSubmit) {
     if (!name) return;
     const file = overlay.querySelector('input[name="cover"]').files[0];
     const coverPending = file ? await resizeImageToDataUrl(file) : null;
-    onSubmit({ name, coverPending });
+    const removeCover = overlay.querySelector('input[name="removeCover"]')?.checked || false;
+    onSubmit({ name, coverPending, removeCover });
     close();
   });
 }
@@ -250,14 +258,23 @@ async function renderTree(container, node, path, trail, ctx) {
         .map(
           (item) => `
         <div class="card" data-id="${item.id}">
-          ${editMode ? `<button class="del-btn" data-del="${item.id}">&#10005;</button>` : ''}
+          ${
+            editMode
+              ? `<button class="del-btn" data-del="${item.id}" style="right:-8px;">&#10005;</button>
+                 ${
+                   item.type === 'category'
+                     ? `<button class="del-btn" data-edit-cat="${item.id}" style="right:22px; color:var(--green-700);">&#9998;</button>`
+                     : ''
+                 }`
+              : ''
+          }
           <div class="card-thumb" data-thumb="${item.id}">${item.type === 'category' ? '&#128193;' : ''}</div>
           <div class="card-name">${item.name}</div>
         </div>`
         )
         .join('')}
       ${
-        editMode && path.length > 0
+        editMode && path.length > 1
           ? `<div class="card card-add card-add-labeled" id="add-card" title="新增圖解筆記">&#65291; 圖解筆記</div>`
           : ''
       }
@@ -274,7 +291,7 @@ async function renderTree(container, node, path, trail, ctx) {
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('[data-del]')) return;
+      if (e.target.closest('[data-del], [data-edit-cat]')) return;
       ctx.navigate(['diagrams', ...path, el.dataset.id]);
     });
   });
@@ -284,6 +301,25 @@ async function renderTree(container, node, path, trail, ctx) {
       e.stopPropagation();
       node.items = (node.items || []).filter((i) => i.id !== el.dataset.del);
       renderTree(container, node, path, trail, ctx);
+    });
+  });
+
+  container.querySelectorAll('[data-edit-cat]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = node.items.find((i) => i.id === el.dataset.editCat);
+      openCategoryModal(
+        ({ name, coverPending, removeCover }) => {
+          category.name = name;
+          if (removeCover) {
+            category.cover = null;
+            delete category.coverPending;
+          }
+          if (coverPending) category.coverPending = coverPending;
+          renderTree(container, node, path, trail, ctx);
+        },
+        category
+      );
     });
   });
 
