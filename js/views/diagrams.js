@@ -412,7 +412,7 @@ function bindEditToggle(container, ctx, rerender) {
 
 // ---------- 圖解筆記詳細頁（表格 + 圖文區塊）----------
 function renderColorPalette() {
-  const colors = ['#2c3527', '#c0392b', '#d68910', '#1f6f43', '#1c5d99', '#7d3c98'];
+  const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#af52de'];
   return `
     <div class="color-palette">
       <span class="palette-label">選取文字上色：</span>
@@ -421,7 +421,7 @@ function renderColorPalette() {
           (c) => `<button type="button" class="color-swatch" data-color="${c}" style="background:${c}"></button>`
         )
         .join('')}
-      <input type="color" class="color-custom" data-color-custom value="#2c3527" title="自訂顏色">
+      <input type="color" class="color-custom" data-color-custom value="#ff3b30" title="自訂顏色">
     </div>
   `;
 }

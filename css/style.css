@@ -275,10 +275,16 @@ a { color: inherit; }
   align-items: flex-start;
   gap: 20px;
 }
-.diagram-top-left { flex: 1; min-width: 0; }
+.diagram-top-left { flex: 2; min-width: 0; }
 .diagram-top-left .work-detail-name { margin: 0 0 12px; font-size: 40pt; line-height: 1.1; }
-.diagram-cover { width: 220px; flex-shrink: 0; text-align: center; }
+.diagram-cover { flex: 1; min-width: 0; text-align: center; }
 .diagram-cover img { width: 100%; border-radius: 12px; display: block; }
+@media (max-width: 700px) {
+  .diagram-top { flex-direction: column; }
+  .diagram-top-left, .diagram-cover { flex: none; width: 100%; }
+  .diagram-cover { max-width: 260px; margin: 0 auto; }
+  .diagram-top-left .work-detail-name { font-size: 26pt; }
+}
 .diagram-cover-edit {
   display: block;
   margin-top: 6px;
@@ -290,8 +296,6 @@ a { color: inherit; }
 
 .diagram-yarn {
   margin: 16px 0 20px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid var(--green-600);
 }
 
 .color-palette { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
