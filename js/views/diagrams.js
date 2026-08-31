@@ -661,10 +661,11 @@ async function renderPatternEditor(container, node, trail, ctx) {
         </div>
       </div>
       <div class="diagram-cover">
-        <img data-cover-img alt="${node.name}" style="display:none;">
+        <img data-cover-img alt="${node.name}" style="display:none; width:${node.coverWidth ? node.coverWidth + 'px' : '100%'};">
         ${
           editMode
-            ? `<label class="diagram-cover-edit">${node.cover || node.coverPending ? '更換照片' : '新增照片'}<input type="file" accept="image/*" data-cover-file></label>`
+            ? `<label class="diagram-cover-edit">${node.cover || node.coverPending ? '更換照片' : '新增照片'}<input type="file" accept="image/*" data-cover-file></label>
+               <label class="block-size" style="justify-content:center;">大小(px) <input type="number" min="60" max="600" step="10" value="${node.coverWidth || 220}" data-cover-width></label>`
             : ''
         }
       </div>
@@ -684,6 +685,7 @@ async function renderPatternEditor(container, node, trail, ctx) {
 
   const coverImg = container.querySelector('[data-cover-img]');
   const coverFile = container.querySelector('[data-cover-file]');
+  const coverWidthInput = container.querySelector('[data-cover-width]');
   if (coverFile) {
     coverFile.addEventListener('change', async () => {
       const file = coverFile.files[0];
@@ -693,6 +695,12 @@ async function renderPatternEditor(container, node, trail, ctx) {
         coverImg.src = node.coverPending;
         coverImg.style.display = 'block';
       }
+    });
+  }
+  if (coverWidthInput) {
+    coverWidthInput.addEventListener('input', () => {
+      node.coverWidth = Number(coverWidthInput.value) || 220;
+      if (coverImg) coverImg.style.width = `${node.coverWidth}px`;
     });
   }
   if (coverImg) {
