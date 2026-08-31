@@ -276,7 +276,7 @@ a { color: inherit; }
   gap: 20px;
 }
 .diagram-top-left { flex: 1; min-width: 0; }
-.diagram-top-left .work-detail-name { margin: 0 0 12px; font-size: 60pt; line-height: 1.1; }
+.diagram-top-left .work-detail-name { margin: 0 0 12px; font-size: 40pt; line-height: 1.1; }
 .diagram-cover { width: 220px; flex-shrink: 0; text-align: center; }
 .diagram-cover img { width: 100%; border-radius: 12px; display: block; }
 .diagram-cover-edit {
