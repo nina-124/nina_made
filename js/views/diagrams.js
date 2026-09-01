@@ -411,6 +411,15 @@ function bindEditToggle(container, ctx, rerender) {
 }
 
 // ---------- 圖解筆記詳細頁（表格 + 圖文區塊）----------
+let savedSelectionRange = null;
+
+function saveSelectionRange() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+    savedSelectionRange = sel.getRangeAt(0).cloneRange();
+  }
+}
+
 function renderColorPalette() {
   const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#af52de'];
   return `
@@ -421,13 +430,23 @@ function renderColorPalette() {
           (c) => `<button type="button" class="color-swatch" data-color="${c}" style="background:${c}"></button>`
         )
         .join('')}
-      <input type="color" class="color-custom" data-color-custom value="#ff3b30" title="自訂顏色">
+      <form class="color-custom-form" data-custom-form>
+        <input type="text" class="color-custom" data-color-custom placeholder="#RRGGBB" maxlength="7">
+        <button type="submit" class="color-custom-apply" title="套用自訂色碼">&#10003;</button>
+      </form>
     </div>
   `;
 }
 
+const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
 function bindColorPalette(container) {
   const applyColor = (color) => {
+    if (savedSelectionRange) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRange);
+    }
     document.execCommand('styleWithCSS', false, true);
     document.execCommand('foreColor', false, color);
   };
@@ -435,10 +454,18 @@ function bindColorPalette(container) {
     btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', () => applyColor(btn.dataset.color));
   });
+  const form = container.querySelector('[data-custom-form]');
   const custom = container.querySelector('[data-color-custom]');
-  if (custom) {
-    custom.addEventListener('mousedown', (e) => e.preventDefault());
-    custom.addEventListener('change', () => applyColor(custom.value));
+  if (form && custom) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const value = custom.value.trim();
+      if (!HEX_COLOR_RE.test(value)) {
+        alert('請輸入正確的色碼格式，例如 #ff3b30');
+        return;
+      }
+      applyColor(value);
+    });
   }
 }
 
@@ -486,7 +513,7 @@ function renderTableSection(table, node) {
       const rowBlocks = node.blocks.filter((b) => b.alignRow === row.id);
       return `
       <div class="diagram-grid-row" data-row="${row.id}">
-        <div class="cell">${
+        <div class="cell cell-center">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="round">${row.round || ''}</span>`
             : `<span>${row.round || ''}</span>`
@@ -496,7 +523,7 @@ function renderTableSection(table, node) {
             ? `<span class="cell-edit" contenteditable="true" data-field="stitch">${row.stitch || ''}</span>`
             : `<span>${row.stitch || ''}</span>`
         }</div>
-        <div class="cell">${
+        <div class="cell cell-center">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="total">${row.total || ''}</span>`
             : `<span>${row.total || ''}</span>`
@@ -519,7 +546,7 @@ function renderTableSection(table, node) {
       </div>
       <div class="diagram-grid ${editMode ? 'is-editing' : ''}">
         <div class="diagram-grid-row diagram-grid-head">
-          <div class="cell">圈數</div><div class="cell">針法</div><div class="cell">總針數</div>${editMode ? '<div class="cell"></div>' : ''}<div class="cell">補充圖文</div>
+          <div class="cell cell-center">圈數</div><div class="cell">針法</div><div class="cell cell-center">總針數</div>${editMode ? '<div class="cell"></div>' : ''}<div class="cell">補充圖文</div>
         </div>
         ${rowsHtml}
       </div>
@@ -538,6 +565,8 @@ function bindTableSection(container, table, node, onStructureChange) {
       const row = table.rows.find((r) => r.id === rowId);
       row[cell.dataset.field] = cell.innerHTML;
     });
+    cell.addEventListener('mouseup', saveSelectionRange);
+    cell.addEventListener('keyup', saveSelectionRange);
   });
 
   el.querySelectorAll('[data-del-row]').forEach((btn) => {

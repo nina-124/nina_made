@@ -298,7 +298,20 @@ a { color: inherit; }
   margin: 16px 0 20px;
 }
 
-.color-palette { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.color-palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(63, 107, 58, 0.18);
+  width: fit-content;
+}
 .palette-label { font-size: 13px; color: var(--text-grey); }
 .color-swatch {
   width: 26px;
@@ -308,8 +321,30 @@ a { color: inherit; }
   box-shadow: 0 0 0 1px #c7d8b8;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
-.color-custom { width: 34px; height: 28px; border: none; padding: 0; background: none; }
+.color-custom-form { display: flex; align-items: center; gap: 4px; }
+.color-custom {
+  width: 78px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid #c7d8b8;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.color-custom-apply {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--green-600);
+  background: #fff;
+  color: var(--green-700);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
 
 .diagram-tables { display: flex; flex-direction: column; gap: 20px; }
 
@@ -335,16 +370,18 @@ a { color: inherit; }
 
 .diagram-grid-row {
   display: grid;
-  grid-template-columns: 3em 1fr 3em 2fr;
+  grid-template-columns: 3em 2fr 3em 1fr;
   gap: 12px;
   align-items: start;
   padding: 8px 0;
 }
 .diagram-grid.is-editing .diagram-grid-row {
-  grid-template-columns: 3em 1fr 3em 28px 2fr;
+  grid-template-columns: 3em 2fr 3em 28px 1fr;
 }
 .diagram-grid-head { font-weight: 700; padding-bottom: 4px; }
 .diagram-grid-row .cell { font-size: 14px; overflow-wrap: break-word; }
+.diagram-grid-row .cell-center { text-align: center; }
+.diagram-grid-row .cell-center .cell-edit { text-align: center; }
 @media (max-width: 700px) {
   .diagram-grid-row { grid-template-columns: 2.5em 1fr 2.5em; }
   .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 2.5em 1fr 2.5em 24px; }
