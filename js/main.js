@@ -1,5 +1,6 @@
 import { getAuth, clearAuth } from './auth.js';
 import { onRouteChange, navigate, startRouter } from './router.js';
+import { ICONS } from './icons.js';
 import {
   renderWorksView,
   getCategories as getWorksCategories,
@@ -105,12 +106,12 @@ function renderShell() {
 
   const sidebar = document.getElementById('sidebar-nav');
   sidebar.innerHTML = `
-    <button class="nav-item" data-nav="works">&#129506; 作品集</button>
+    <button class="nav-item" data-nav="works"><span class="nav-icon">${ICONS.gallery}</span>作品集</button>
     <div class="nav-section" id="works-subnav"></div>
-    ${ctx.authed ? `<button class="nav-item" data-nav="diagrams">&#129737; 圖解</button>` : ''}
+    ${ctx.authed ? `<button class="nav-item" data-nav="diagrams"><span class="nav-icon">${ICONS.book}</span>圖解</button>` : ''}
     ${ctx.authed ? `<div class="nav-section" id="diagrams-subnav"></div>` : ''}
-    ${ctx.authed ? `<button class="nav-item" data-nav="materials">&#129525; 綫材&工具</button>` : ''}
-    ${ctx.authed ? `<button class="nav-item" data-nav="settings">&#9986; 設定</button>` : ''}
+    ${ctx.authed ? `<button class="nav-item" data-nav="materials"><span class="nav-icon">${ICONS.scissors}</span>綫材&工具</button>` : ''}
+    ${ctx.authed ? `<button class="nav-item" data-nav="settings"><span class="nav-icon">${ICONS.sliders}</span>設定</button>` : ''}
   `;
   sidebar.querySelectorAll('[data-nav]').forEach((el) => {
     el.addEventListener('click', () => navigate([el.dataset.nav]));

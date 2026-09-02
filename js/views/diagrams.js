@@ -1,4 +1,5 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile, uploadImageFile, getRawFileBase64 } from '../github-api.js';
+import { ICONS } from '../icons.js';
 
 const DATA_PATH = 'data/diagrams.json';
 
@@ -293,7 +294,7 @@ async function renderTree(container, node, path, trail, ctx) {
     <div class="topbar">
       ${renderCrumb(trail, ctx)}
       <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
-    editMode ? '&#10003;' : '&#9998;'
+    editMode ? ICONS.check : ICONS.pencil
   }</button>
     </div>
     <div class="card-grid">
@@ -306,12 +307,12 @@ async function renderTree(container, node, path, trail, ctx) {
               ? `<button class="del-btn" data-del="${item.id}" style="right:-8px;">&#10005;</button>
                  ${
                    item.type === 'category'
-                     ? `<button class="del-btn" data-edit-cat="${item.id}" style="right:22px; color:var(--green-700);">&#9998;</button>`
+                     ? `<button class="del-btn" data-edit-cat="${item.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>`
                      : ''
                  }`
               : ''
           }
-          <div class="card-thumb" data-thumb="${item.id}">${item.type === 'category' ? '&#128193;' : ''}</div>
+          <div class="card-thumb" data-thumb="${item.id}">${item.type === 'category' ? ICONS.folder : ''}</div>
           <div class="card-name">${item.name}</div>
         </div>`
         )
@@ -690,9 +691,9 @@ async function renderPatternEditor(container, node, trail, ctx) {
   container.innerHTML = `
     <div class="topbar">
       ${renderCrumb(trail, ctx)}
-      ${!editMode ? `<button class="icon-btn" id="print-btn" title="列印/匯出 PDF">&#128438;</button>` : ''}
+      ${!editMode ? `<button class="icon-btn" id="print-btn" title="列印/匯出 PDF">${ICONS.printer}</button>` : ''}
       <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
-    editMode ? '&#10003;' : '&#9998;'
+    editMode ? ICONS.check : ICONS.pencil
   }</button>
     </div>
     <div id="print-area">

@@ -1,4 +1,5 @@
 import { PUBLIC_REPO, getJsonFile, putJsonFile, uploadImageFile } from '../github-api.js';
+import { ICONS } from '../icons.js';
 
 const DATA_PATH = 'data/works-public.json';
 
@@ -185,15 +186,21 @@ function openWorkModal({ categories, existing }, onSubmit) {
 
 function renderCard(work, ctx) {
   const src = work.coverPending || localPreviewCache.get(work.id) || work.cover;
+  const tagName = (work.categoryIds || [])
+    .map((id) => cache.categories.find((c) => c.id === id)?.name)
+    .find(Boolean);
   return `
     <div class="card" data-id="${work.id}">
       ${
         editMode
           ? `<button class="del-btn" data-del="${work.id}" style="right:-8px;">&#10005;</button>
-             <button class="del-btn" data-edit="${work.id}" style="right:22px; color:var(--green-700);">&#9998;</button>`
+             <button class="del-btn" data-edit="${work.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>`
           : ''
       }
-      <div class="card-thumb">${src ? `<img src="${src}" alt="${work.name}">` : ''}</div>
+      <div class="card-thumb">
+        ${src ? `<img src="${src}" alt="${work.name}">` : ''}
+        ${tagName ? `<span class="card-tag">${tagName}</span>` : ''}
+      </div>
       <div class="card-name">${work.name}</div>
     </div>`;
 }
@@ -231,11 +238,11 @@ function renderGallery(container, data, filterCategoryId, ctx) {
   container.innerHTML = `
     <div class="topbar">
       <div class="breadcrumb"><span>作品集${category ? ` | ${category.name}` : ''}</span></div>
-      <div class="search-box">&#128269;<input placeholder="搜尋"></div>
+      <div class="search-box">${ICONS.search}<input placeholder="搜尋"></div>
       ${
         ctx.authed
           ? `<button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
-              editMode ? '&#10003;' : '&#9998;'
+              editMode ? ICONS.check : ICONS.pencil
             }</button>`
           : ''
       }
