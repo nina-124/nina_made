@@ -30,7 +30,7 @@ function emptyData() {
 }
 
 if (typeof window !== 'undefined') {
-  const A4_PRINTABLE_HEIGHT_PX = ((297 - 20) * 96) / 25.4; // A4 減上下各 10mm 邊界，換算成 96dpi px
+  const A4_PRINTABLE_HEIGHT_PX = (297 * 96) / 25.4; // @page margin 為 0（改由 #print-area 自己的 padding 撐開留白，避免瀏覽器印出頁首頁尾），故以整頁高度計算
 
   window.addEventListener('beforeprint', () => {
     const area = document.getElementById('print-area');

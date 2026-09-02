@@ -442,11 +442,11 @@ a { color: inherit; }
 
 /* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面，字級/間距縮小以精簡頁數 ---------- */
 @media print {
-  @page { size: A4; margin: 10mm; }
+  @page { size: A4; margin: 0; }
   body { background: #fff; }
   .sidebar, .topbar, .logout-link { display: none !important; }
   .main { padding: 0; }
-  #print-area { max-width: 100%; zoom: var(--print-scale, 1); }
+  #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; zoom: var(--print-scale, 1); }
   .diagram-top { break-inside: avoid; gap: 10px; }
   .diagram-top-left .work-detail-name { font-size: 20pt; margin-bottom: 6px; }
   .diagram-yarn { margin: 6px 0 10px; }
