@@ -29,6 +29,23 @@ function emptyData() {
   return { items: [] };
 }
 
+if (typeof window !== 'undefined') {
+  const A4_PRINTABLE_HEIGHT_PX = ((297 - 20) * 96) / 25.4; // A4 減上下各 10mm 邊界，換算成 96dpi px
+
+  window.addEventListener('beforeprint', () => {
+    const area = document.getElementById('print-area');
+    if (!area) return;
+    document.documentElement.style.setProperty('--print-scale', '1');
+    const naturalHeight = area.scrollHeight;
+    const scale = naturalHeight > A4_PRINTABLE_HEIGHT_PX ? A4_PRINTABLE_HEIGHT_PX / naturalHeight : 1;
+    document.documentElement.style.setProperty('--print-scale', String(scale));
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.documentElement.style.setProperty('--print-scale', '1');
+  });
+}
+
 async function loadData(token) {
   if (cache) return cache;
   const result = await getJsonFile(PRIVATE_REPO, DATA_PATH, token);

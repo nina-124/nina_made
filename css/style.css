@@ -1,4 +1,5 @@
 :root {
+  --print-scale: 1;
   --green-600: #5da344;
   --green-700: #3f6b3a;
   --green-800: #2e4f2b;
@@ -439,17 +440,26 @@ a { color: inherit; }
   .nav-section { flex-direction: row; }
 }
 
-/* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面 ---------- */
+/* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面，字級/間距縮小以精簡頁數 ---------- */
 @media print {
-  @page { size: 210mm auto; margin: 12mm; }
+  @page { size: A4; margin: 10mm; }
   body { background: #fff; }
   .sidebar, .topbar, .logout-link { display: none !important; }
   .main { padding: 0; }
-  #print-area { max-width: 100%; }
-  .diagram-top { break-inside: avoid; }
-  .diagram-table { break-inside: avoid; page-break-inside: avoid; }
-  .diagram-grid-row { grid-template-columns: 3em 3fr 5em 1fr; }
+  #print-area { max-width: 100%; zoom: var(--print-scale, 1); }
+  .diagram-top { break-inside: avoid; gap: 10px; }
+  .diagram-top-left .work-detail-name { font-size: 20pt; margin-bottom: 6px; }
+  .diagram-yarn { margin: 6px 0 10px; }
+  .diagram-cover { flex: 0 0 90px; }
+  .diagram-cover img { width: 90px !important; }
+  .diagram-tables { gap: 8px; }
+  .diagram-table { padding: 6px; break-inside: auto; page-break-inside: auto; }
+  .diagram-table-head { margin-bottom: 4px; }
+  .diagram-table-head h3 { font-size: 12pt; }
+  .diagram-grid-row { grid-template-columns: 2.2em 3fr 3.5em 1fr; gap: 8px; padding: 3px 0; break-inside: avoid; page-break-inside: avoid; }
+  .diagram-grid-row .cell { font-size: 9.5pt; }
   .attach-cell { grid-column: auto; }
   .row-attach { break-inside: avoid; }
+  .row-attach .block-text { font-size: 8.5pt; }
   .del-btn, .card-add, .modal-overlay, .color-palette { display: none !important; }
 }
