@@ -380,7 +380,7 @@ a { color: inherit; }
 }
 .diagram-grid-row:not(:last-child) { border-bottom: 1.5px solid #e4edd7; }
 .diagram-grid-head { font-weight: 700; padding-bottom: 4px; }
-.diagram-grid-row .cell { font-size: 16pt; overflow-wrap: break-word; }
+.diagram-grid-row .cell { font-size: 15pt; overflow-wrap: break-word; }
 .diagram-grid-row .cell-center { text-align: center; }
 .diagram-grid-row .cell-center .cell-edit { text-align: center; }
 @media (max-width: 700px) {
