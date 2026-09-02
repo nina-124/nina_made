@@ -370,22 +370,22 @@ a { color: inherit; }
 
 .diagram-grid-row {
   display: grid;
-  grid-template-columns: 3em 2fr 3em 1fr;
+  grid-template-columns: 3em 3fr 5em 1fr;
   gap: 12px;
   align-items: start;
   padding: 8px 0;
 }
 .diagram-grid.is-editing .diagram-grid-row {
-  grid-template-columns: 3em 2fr 3em 28px 1fr;
+  grid-template-columns: 3em 3fr 5em 28px 1fr;
 }
 .diagram-grid-row:not(:last-child) { border-bottom: 1.5px solid #e4edd7; }
 .diagram-grid-head { font-weight: 700; padding-bottom: 4px; }
 .diagram-grid-row .cell { font-size: 15pt; overflow-wrap: break-word; }
-.diagram-grid-row .cell-center { text-align: center; }
+.diagram-grid-row .cell-center { text-align: center; white-space: nowrap; }
 .diagram-grid-row .cell-center .cell-edit { text-align: center; }
 @media (max-width: 700px) {
-  .diagram-grid-row { grid-template-columns: 2.5em 1fr 2.5em; }
-  .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 2.5em 1fr 2.5em 24px; }
+  .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em; }
+  .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em 24px; }
   .attach-cell { grid-column: 1 / -1; }
 }
 
