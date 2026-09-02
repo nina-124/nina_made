@@ -447,10 +447,11 @@ a { color: inherit; }
   .sidebar, .topbar, .logout-link { display: none !important; }
   .main { padding: 0; }
   #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; zoom: var(--print-scale, 1); }
-  .diagram-top { break-inside: avoid; gap: 10px; }
+  .diagram-top { break-inside: avoid; gap: 10px; flex-direction: row; }
+  .diagram-top-left { flex: 2; width: auto; }
   .diagram-top-left .work-detail-name { font-size: 20pt; margin-bottom: 6px; }
   .diagram-yarn { margin: 6px 0 10px; }
-  .diagram-cover { flex: 0 0 90px; }
+  .diagram-cover { flex: 0 0 90px; width: auto; max-width: none; margin: 0; }
   .diagram-cover img { width: 90px !important; }
   .diagram-tables { gap: 8px; }
   .diagram-table { padding: 6px; break-inside: auto; page-break-inside: auto; }
