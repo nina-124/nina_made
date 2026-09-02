@@ -451,8 +451,8 @@ a { color: inherit; }
   .diagram-top-left { flex: 2; width: auto; }
   .diagram-top-left .work-detail-name { font-size: 20pt; margin-bottom: 6px; }
   .diagram-yarn { margin: 6px 0 10px; }
-  .diagram-cover { flex: 0 0 90px; width: auto; max-width: none; margin: 0; }
-  .diagram-cover img { width: 90px !important; }
+  .diagram-cover { flex: 0 0 170px; width: auto; max-width: none; margin: 0; }
+  .diagram-cover img { width: 170px !important; }
   .diagram-tables { gap: 8px; }
   .diagram-table { padding: 6px; break-inside: auto; page-break-inside: auto; }
   .diagram-table-head { margin-bottom: 4px; }
