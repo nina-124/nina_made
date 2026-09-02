@@ -441,7 +441,7 @@ a { color: inherit; }
 
 /* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面 ---------- */
 @media print {
-  @page { size: A4; margin: 12mm; }
+  @page { size: 210mm auto; margin: 12mm; }
   body { background: #fff; }
   .sidebar, .topbar, .logout-link { display: none !important; }
   .main { padding: 0; }
