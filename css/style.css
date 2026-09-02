@@ -448,6 +448,8 @@ a { color: inherit; }
   #print-area { max-width: 100%; }
   .diagram-top { break-inside: avoid; }
   .diagram-table { break-inside: avoid; page-break-inside: avoid; }
+  .diagram-grid-row { grid-template-columns: 3em 3fr 5em 1fr; }
+  .attach-cell { grid-column: auto; }
   .row-attach { break-inside: avoid; }
   .del-btn, .card-add, .modal-overlay, .color-palette { display: none !important; }
 }
