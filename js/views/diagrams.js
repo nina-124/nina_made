@@ -673,41 +673,47 @@ async function renderPatternEditor(container, node, trail, ctx) {
   container.innerHTML = `
     <div class="topbar">
       ${renderCrumb(trail, ctx)}
+      ${!editMode ? `<button class="icon-btn" id="print-btn" title="列印/匯出 PDF">&#128438;</button>` : ''}
       <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
     editMode ? '&#10003;' : '&#9998;'
   }</button>
     </div>
-    <div class="diagram-top">
-      <div class="diagram-top-left">
-        <h2 class="work-detail-name">${node.name}</h2>
-        <div class="diagram-yarn">
-          <label style="font-weight:700;">線材需求</label>
+    <div id="print-area">
+      <div class="diagram-top">
+        <div class="diagram-top-left">
+          <h2 class="work-detail-name">${node.name}</h2>
+          <div class="diagram-yarn">
+            <label style="font-weight:700;">線材需求</label>
+            ${
+              editMode
+                ? `<textarea id="yarn-note" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #c7d8b8; padding:10px; font-family:inherit;">${node.yarnNote || ''}</textarea>`
+                : `<p class="block-text">${(node.yarnNote || '（尚未填寫）').replace(/\n/g, '<br>')}</p>`
+            }
+          </div>
+        </div>
+        <div class="diagram-cover">
+          <img data-cover-img alt="${node.name}" style="display:none; width:${node.coverWidth ? node.coverWidth + 'px' : '100%'};">
           ${
             editMode
-              ? `<textarea id="yarn-note" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #c7d8b8; padding:10px; font-family:inherit;">${node.yarnNote || ''}</textarea>`
-              : `<p class="block-text">${(node.yarnNote || '（尚未填寫）').replace(/\n/g, '<br>')}</p>`
+              ? `<label class="diagram-cover-edit">${node.cover || node.coverPending ? '更換照片' : '新增照片'}<input type="file" accept="image/*" data-cover-file></label>
+                 <label class="block-size" style="justify-content:center;">大小(px) <input type="number" min="60" max="600" step="10" value="${node.coverWidth || 220}" data-cover-width></label>`
+              : ''
           }
         </div>
       </div>
-      <div class="diagram-cover">
-        <img data-cover-img alt="${node.name}" style="display:none; width:${node.coverWidth ? node.coverWidth + 'px' : '100%'};">
-        ${
-          editMode
-            ? `<label class="diagram-cover-edit">${node.cover || node.coverPending ? '更換照片' : '新增照片'}<input type="file" accept="image/*" data-cover-file></label>
-               <label class="block-size" style="justify-content:center;">大小(px) <input type="number" min="60" max="600" step="10" value="${node.coverWidth || 220}" data-cover-width></label>`
-            : ''
-        }
+      ${editMode ? renderColorPalette() : ''}
+      <div class="diagram-tables">
+        ${node.tables.map((t) => renderTableSection(t, node)).join('')}
+        ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
       </div>
-    </div>
-    ${editMode ? renderColorPalette() : ''}
-    <div class="diagram-tables">
-      ${node.tables.map((t) => renderTableSection(t, node)).join('')}
-      ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
     </div>
   `;
 
   bindCrumb(container, ctx);
   if (editMode) bindColorPalette(container);
+
+  const printBtn = container.querySelector('#print-btn');
+  if (printBtn) printBtn.addEventListener('click', () => window.print());
 
   const yarnNote = container.querySelector('#yarn-note');
   if (yarnNote) yarnNote.addEventListener('input', () => (node.yarnNote = yarnNote.value));

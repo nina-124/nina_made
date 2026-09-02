@@ -438,3 +438,16 @@ a { color: inherit; }
   .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
   .nav-section { flex-direction: row; }
 }
+
+/* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面 ---------- */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: #fff; }
+  .sidebar, .topbar, .logout-link { display: none !important; }
+  .main { padding: 0; }
+  #print-area { max-width: 100%; }
+  .diagram-top { break-inside: avoid; }
+  .diagram-table { break-inside: avoid; page-break-inside: avoid; }
+  .row-attach { break-inside: avoid; }
+  .del-btn, .card-add, .modal-overlay, .color-palette { display: none !important; }
+}
