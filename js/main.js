@@ -100,6 +100,9 @@ async function renderDiagramsSubnav() {
 }
 
 function renderShell() {
+  const logo = document.getElementById('home-logo');
+  if (logo) logo.addEventListener('click', () => navigate(['works']));
+
   const sidebar = document.getElementById('sidebar-nav');
   sidebar.innerHTML = `
     <button class="nav-item" data-nav="works">&#129506; 作品集</button>
