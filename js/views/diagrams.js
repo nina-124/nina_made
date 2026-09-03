@@ -714,7 +714,14 @@ async function renderPatternEditor(container, node, trail, ctx) {
   if (editMode) bindColorPalette(container);
 
   const printBtn = container.querySelector('#print-btn');
-  if (printBtn) printBtn.addEventListener('click', () => window.print());
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      const originalTitle = document.title;
+      document.title = node.name || originalTitle;
+      window.print();
+      document.title = originalTitle;
+    });
+  }
 
   const yarnNote = container.querySelector('#yarn-note');
   if (yarnNote) yarnNote.addEventListener('input', () => (node.yarnNote = yarnNote.value));
