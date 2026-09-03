@@ -59,8 +59,8 @@ function matchesSearch(item, fields, keyword) {
   return fields.some((f) => String(item[f] || '').toLowerCase().includes(kw));
 }
 
-// ---------- modal：新增/編輯品牌來源 ----------
-function openGroupModal(existing, allGroups, onSubmit) {
+// ---------- modal：新增/編輯品牌 ----------
+function openGroupModal(existing, onSubmit) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
@@ -68,9 +68,6 @@ function openGroupModal(existing, allGroups, onSubmit) {
       <div class="modal-header"><span>${existing ? '編輯品牌' : '新增品牌'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
         <label>品牌名稱 <input type="text" name="name" placeholder="例如：蘇蘇姐家" value="${existing?.name || ''}"></label>
-        <label>購買平台 <input type="text" name="platform" list="opt-group-platform" placeholder="輸入新的或從清單選擇" value="${existing?.platform || ''}"></label>
-        <label>平台商家 <input type="text" name="vendor" placeholder="商家名稱，或貼上網址可直接點擊" value="${existing?.vendor || ''}"></label>
-        ${renderDatalist('opt-group-platform', collectOptions(allGroups, 'platform'))}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
           <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
@@ -87,28 +84,19 @@ function openGroupModal(existing, allGroups, onSubmit) {
   const submit = () => {
     const name = input.value.trim();
     if (!name) return;
-    onSubmit({
-      name,
-      platform: overlay.querySelector('input[name="platform"]').value.trim(),
-      vendor: overlay.querySelector('input[name="vendor"]').value.trim(),
-    });
+    onSubmit({ name });
     close();
   };
   overlay.querySelector('[data-submit]').addEventListener('click', submit);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
 }
 
-function isUrl(str) {
-  return /^https?:\/\//i.test(str || '');
-}
-
-function renderGroupMeta(group) {
-  const parts = [];
-  if (group.platform) parts.push(group.platform);
-  if (group.vendor) {
-    parts.push(isUrl(group.vendor) ? `<a href="${group.vendor}" target="_blank" rel="noopener">${group.platform ? '商家連結' : group.vendor}</a>` : group.vendor);
+function renderVendorLink(item) {
+  if (item.vendorUrl) {
+    const label = item.vendorName || item.vendorUrl;
+    return `<a href="${item.vendorUrl}" target="_blank" rel="noopener">${label}</a>`;
   }
-  return parts.length ? `<span class="material-group-meta">${parts.join(' · ')}</span>` : '';
+  return item.vendorName || '';
 }
 
 function bindQtyStepper(overlay) {
@@ -133,6 +121,9 @@ function openYarnModal(allItems, onSubmit) {
         <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇"></label>
         <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇"></label>
         <label>色號 <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇"></label>
+        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇"></label>
+        <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE"></label>
+        <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..."></label>
         <label>數量
           <div style="display:flex; align-items:center; gap:10px;">
             <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
@@ -144,6 +135,7 @@ function openYarnModal(allItems, onSubmit) {
         ${renderDatalist('opt-yarnType', collectOptions(allItems, 'yarnType'))}
         ${renderDatalist('opt-ply', collectOptions(allItems, 'ply'))}
         ${renderDatalist('opt-colorCode', collectOptions(allItems, 'colorCode'))}
+        ${renderDatalist('opt-platform', collectOptions(allItems, 'platform'))}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
           <button type="button" class="btn btn-primary" data-submit>新增</button>
@@ -166,6 +158,9 @@ function openYarnModal(allItems, onSubmit) {
       yarnType,
       ply: get('ply'),
       colorCode: get('colorCode'),
+      platform: get('platform'),
+      vendorName: get('vendorName'),
+      vendorUrl: get('vendorUrl'),
       quantity: Number(overlay.querySelector('[name="quantity"]').value) || 0,
     });
     close();
@@ -247,14 +242,13 @@ async function toggleEdit(container, ctx, rerender) {
 // ---------- 綫材頁 ----------
 function renderYarnGroup(group, keyword) {
   const items = group.items.filter((it) =>
-    matchesSearch(it, ['category', 'yarnType', 'ply', 'colorCode'], keyword)
+    matchesSearch(it, ['category', 'yarnType', 'ply', 'colorCode', 'platform', 'vendorName'], keyword)
   );
   if (keyword && !items.length) return '';
   return `
     <div class="material-group" data-group="${group.id}">
       <div class="material-group-head">
         <span class="material-group-tag">${group.name}</span>
-        ${renderGroupMeta(group)}
         ${
           editMode
             ? `<button class="del-btn" data-edit-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
@@ -263,17 +257,19 @@ function renderYarnGroup(group, keyword) {
             : ''
         }
       </div>
-      <div class="material-table ${editMode ? 'is-editing' : ''}">
-        <div class="material-row material-row-head">
-          <div>種類</div><div>股數</div><div>#色號</div><div>數量</div><div>建立時間</div>${editMode ? '<div></div>' : ''}
+      <div class="material-table material-table-yarn ${editMode ? 'is-editing' : ''}">
+        <div class="material-row material-row-head material-row-yarn">
+          <div>種類</div><div>股數</div><div>#色號</div><div>購買平台</div><div>商家</div><div>數量</div><div>建立時間</div>${editMode ? '<div></div>' : ''}
         </div>
         ${items
           .map(
             (it) => `
-          <div class="material-row" data-item="${it.id}">
+          <div class="material-row material-row-yarn" data-item="${it.id}">
             <div>${it.category ? `${it.category} ` : ''}${it.yarnType || ''}</div>
             <div>${it.ply || ''}</div>
             <div>${it.colorCode || ''}</div>
+            <div>${it.platform || ''}</div>
+            <div>${renderVendorLink(it)}</div>
             <div>${it.quantity ?? ''}</div>
             <div>${it.createdAt || ''}</div>
             ${editMode ? `<div><button class="del-btn" data-del-item="${it.id}" data-group="${group.id}" style="position:static;">&#10005;</button></div>` : ''}
@@ -321,8 +317,8 @@ async function renderYarnPage(container, ctx) {
     const addGroupBtn = container.querySelector('#add-group-btn');
     if (addGroupBtn) {
       addGroupBtn.addEventListener('click', () => {
-        openGroupModal(null, cache.yarnGroups, ({ name, platform, vendor }) => {
-          cache.yarnGroups.push({ id: newId(), name, platform, vendor, items: [] });
+        openGroupModal(null, ({ name }) => {
+          cache.yarnGroups.push({ id: newId(), name, items: [] });
           draw();
         });
       });
@@ -331,10 +327,8 @@ async function renderYarnPage(container, ctx) {
     container.querySelectorAll('[data-edit-group]').forEach((el) => {
       el.addEventListener('click', () => {
         const group = cache.yarnGroups.find((g) => g.id === el.dataset.editGroup);
-        openGroupModal(group, cache.yarnGroups, ({ name, platform, vendor }) => {
+        openGroupModal(group, ({ name }) => {
           group.name = name;
-          group.platform = platform;
-          group.vendor = vendor;
           draw();
         });
       });
