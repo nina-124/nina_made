@@ -454,6 +454,51 @@ a { color: inherit; }
   padding: 0;
 }
 
+/* --- 綫材&工具 --- */
+.material-groups { display: flex; flex-direction: column; gap: 24px; }
+
+.material-group {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(44, 62, 45, 0.06);
+}
+.material-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.material-group-tag {
+  background: var(--sidebar-bg-1);
+  color: var(--text-dark);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 6px 16px;
+  border-radius: 999px;
+}
+.material-group-head .link-btn { margin-left: auto; }
+
+.material-table { display: flex; flex-direction: column; }
+.material-row {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+.material-table.is-editing .material-row { grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1fr 28px; }
+.material-row-head {
+  font-weight: 700;
+  color: var(--text-grey);
+  font-size: 12px;
+  border-bottom: 1.5px solid var(--card-border);
+  padding-bottom: 8px;
+}
+.material-row:not(.material-row-head):not(:last-child) { border-bottom: 1px solid var(--card-border); }
+
 .placeholder-panel {
   background: #fff;
   border: 1px solid var(--card-border);

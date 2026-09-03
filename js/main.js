@@ -17,6 +17,7 @@ import {
   deleteCategoryAt as deleteDiagramsCategoryAt,
   openCategoryModal as openDiagramsCategoryModal,
 } from './views/diagrams.js';
+import { renderMaterialsView } from './views/materials.js';
 
 const auth = getAuth();
 const ctx = {
@@ -27,6 +28,22 @@ const ctx = {
 };
 
 let currentDiagramsPath = [];
+let currentMaterialsPath = [];
+
+function renderMaterialsSubnav() {
+  const subnav = document.getElementById('materials-subnav');
+  if (!subnav) return;
+  const activeTab = currentMaterialsPath[0] === 'tools' ? 'tools' : 'yarn';
+  subnav.innerHTML = `
+    <div class="nav-subitem ${activeTab === 'yarn' ? 'active' : ''}" data-materials-tab="yarn">綫材</div>
+    <div class="nav-subitem ${activeTab === 'tools' ? 'active' : ''}" data-materials-tab="tools">工具</div>
+  `;
+  subnav.querySelectorAll('[data-materials-tab]').forEach((el) => {
+    el.addEventListener('click', () => {
+      navigate(el.dataset.materialsTab === 'tools' ? ['materials', 'tools'] : ['materials']);
+    });
+  });
+}
 
 async function renderWorksSubnav(activeCategoryId) {
   const subnav = document.getElementById('works-subnav');
@@ -111,12 +128,14 @@ function renderShell() {
     ${ctx.authed ? `<button class="nav-item" data-nav="diagrams"><span class="nav-icon">${ICONS.book}</span>圖解</button>` : ''}
     ${ctx.authed ? `<div class="nav-section" id="diagrams-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="materials"><span class="nav-icon">${ICONS.scissors}</span>綫材&工具</button>` : ''}
+    ${ctx.authed ? `<div class="nav-section" id="materials-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="settings"><span class="nav-icon">${ICONS.sliders}</span>設定</button>` : ''}
   `;
   sidebar.querySelectorAll('[data-nav]').forEach((el) => {
     el.addEventListener('click', () => navigate([el.dataset.nav]));
   });
   renderWorksSubnav();
+  renderMaterialsSubnav();
   window.addEventListener('works:updated', () => renderWorksSubnav());
   window.addEventListener('works:editmode-changed', () => renderWorksSubnav());
   window.addEventListener('diagrams:updated', () => renderDiagramsSubnav());
@@ -144,8 +163,10 @@ function renderPlaceholder(container, title) {
 function updateSubnavVisibility(section) {
   const worksSubnav = document.getElementById('works-subnav');
   const diagramsSubnav = document.getElementById('diagrams-subnav');
+  const materialsSubnav = document.getElementById('materials-subnav');
   if (worksSubnav) worksSubnav.hidden = section !== 'works';
   if (diagramsSubnav) diagramsSubnav.hidden = section !== 'diagrams';
+  if (materialsSubnav) materialsSubnav.hidden = section !== 'materials';
 }
 
 async function onRoute(path) {
@@ -171,7 +192,9 @@ async function onRoute(path) {
     await renderDiagramsView(container, currentDiagramsPath, ctx);
     await renderDiagramsSubnav();
   } else if (section === 'materials') {
-    renderPlaceholder(container, '綫材&工具');
+    currentMaterialsPath = path.slice(1);
+    await renderMaterialsView(container, currentMaterialsPath, ctx);
+    renderMaterialsSubnav();
   } else if (section === 'settings') {
     renderPlaceholder(container, '設定');
   } else {
