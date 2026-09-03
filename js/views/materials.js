@@ -110,25 +110,26 @@ function bindQtyStepper(overlay) {
   });
 }
 
-// ---------- modal：新增線材 ----------
-function openYarnModal(allItems, onSubmit) {
+// ---------- modal：新增/編輯線材 ----------
+function openYarnModal(existing, allItems, onSubmit) {
+  const v = (field) => existing?.[field] || '';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>新增線材</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? '編輯線材' : '新增線材'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>種類 <input type="text" name="category" list="opt-category" placeholder="輸入新的或從清單選擇"></label>
-        <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇"></label>
-        <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇"></label>
-        <label>色號 <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇"></label>
-        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇"></label>
-        <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE"></label>
-        <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..."></label>
+        <label>種類 <input type="text" name="category" list="opt-category" placeholder="輸入新的或從清單選擇" value="${v('category')}"></label>
+        <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇" value="${v('yarnType')}"></label>
+        <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇" value="${v('ply')}"></label>
+        <label>色號 <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇" value="${v('colorCode')}"></label>
+        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇" value="${v('platform')}"></label>
+        <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE" value="${v('vendorName')}"></label>
+        <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..." value="${v('vendorUrl')}"></label>
         <label>數量
           <div style="display:flex; align-items:center; gap:10px;">
             <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
-            <input type="number" name="quantity" min="0" value="1" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
+            <input type="number" name="quantity" min="0" value="${existing ? existing.quantity ?? 1 : 1}" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
             <button type="button" class="btn btn-secondary" data-qty-plus style="padding:6px 12px;">&#43;</button>
           </div>
         </label>
@@ -139,7 +140,7 @@ function openYarnModal(allItems, onSubmit) {
         ${renderDatalist('opt-platform', collectOptions(allItems, 'platform'))}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
-          <button type="button" class="btn btn-primary" data-submit>新增</button>
+          <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
         </div>
       </div>
     </div>`;
@@ -168,31 +169,32 @@ function openYarnModal(allItems, onSubmit) {
   });
 }
 
-// ---------- modal：新增工具 ----------
-function openToolModal(allTools, onSubmit) {
+// ---------- modal：新增/編輯工具 ----------
+function openToolModal(existing, allTools, onSubmit) {
+  const v = (field) => existing?.[field] || '';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>新增工具</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? '編輯工具' : '新增工具'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>名稱 <input type="text" name="name" list="opt-name" placeholder="例如：眼鏡"></label>
+        <label>名稱 <input type="text" name="name" list="opt-name" placeholder="例如：眼鏡" value="${v('name')}"></label>
         <label>數量
           <div style="display:flex; align-items:center; gap:10px;">
             <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
-            <input type="number" name="quantity" min="0" value="1" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
+            <input type="number" name="quantity" min="0" value="${existing ? existing.quantity ?? 1 : 1}" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
             <button type="button" class="btn btn-secondary" data-qty-plus style="padding:6px 12px;">&#43;</button>
           </div>
         </label>
-        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇"></label>
-        <label>廠商名稱 <input type="text" name="vendorName" list="opt-vendorName" placeholder="輸入新的或從清單選擇"></label>
-        <label>廠商網址 <input type="url" name="vendorUrl" placeholder="https://..."></label>
+        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇" value="${v('platform')}"></label>
+        <label>廠商名稱 <input type="text" name="vendorName" list="opt-vendorName" placeholder="輸入新的或從清單選擇" value="${v('vendorName')}"></label>
+        <label>廠商網址 <input type="url" name="vendorUrl" placeholder="https://..." value="${v('vendorUrl')}"></label>
         ${renderDatalist('opt-name', collectOptions(allTools, 'name'))}
         ${renderDatalist('opt-platform', collectOptions(allTools, 'platform'))}
         ${renderDatalist('opt-vendorName', collectOptions(allTools, 'vendorName'))}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
-          <button type="button" class="btn btn-primary" data-submit>新增</button>
+          <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
         </div>
       </div>
     </div>`;
@@ -275,7 +277,14 @@ function renderYarnGroup(group, keyword) {
             <div>${renderVendorLink(it)}</div>
             <div>${it.quantity ?? ''}</div>
             <div>${it.createdAt || ''}</div>
-            ${editMode ? `<div><button class="del-btn" data-del-item="${it.id}" data-group="${group.id}" style="position:static;">&#10005;</button></div>` : ''}
+            ${
+              editMode
+                ? `<div class="material-row-actions">
+                     <button class="del-btn" data-edit-item="${it.id}" data-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
+                     <button class="del-btn" data-del-item="${it.id}" data-group="${group.id}" style="position:static;">&#10005;</button>
+                   </div>`
+                : ''
+            }
           </div>`
           )
           .join('')}
@@ -356,8 +365,21 @@ async function renderYarnPage(container, ctx) {
       el.addEventListener('click', () => {
         const group = cache.yarnGroups.find((g) => g.id === el.dataset.addItem);
         const allItems = cache.yarnGroups.flatMap((g) => g.items);
-        openYarnModal(allItems, (fields) => {
+        openYarnModal(null, allItems, (fields) => {
           group.items.push({ id: newId(), ...fields, createdAt: today() });
+          draw();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-edit-item]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const group = cache.yarnGroups.find((g) => g.id === el.dataset.group);
+        const item = group?.items.find((it) => it.id === el.dataset.editItem);
+        if (!item) return;
+        const allItems = cache.yarnGroups.flatMap((g) => g.items);
+        openYarnModal(item, allItems, (fields) => {
+          Object.assign(item, fields);
           draw();
         });
       });
@@ -404,7 +426,14 @@ function renderToolGroup(group, keyword) {
             <div>${t.platform || ''}</div>
             <div>${renderVendorLink(t)}</div>
             <div>${t.createdAt || ''}</div>
-            ${editMode ? `<div><button class="del-btn" data-del-item="${t.id}" data-group="${group.id}" style="position:static;">&#10005;</button></div>` : ''}
+            ${
+              editMode
+                ? `<div class="material-row-actions">
+                     <button class="del-btn" data-edit-item="${t.id}" data-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
+                     <button class="del-btn" data-del-item="${t.id}" data-group="${group.id}" style="position:static;">&#10005;</button>
+                   </div>`
+                : ''
+            }
           </div>`
           )
           .join('')}
@@ -485,8 +514,21 @@ async function renderToolsPage(container, ctx) {
       el.addEventListener('click', () => {
         const group = cache.toolGroups.find((g) => g.id === el.dataset.addItem);
         const allTools = cache.toolGroups.flatMap((g) => g.items);
-        openToolModal(allTools, (fields) => {
+        openToolModal(null, allTools, (fields) => {
           group.items.push({ id: newId(), ...fields, createdAt: today() });
+          draw();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-edit-item]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const group = cache.toolGroups.find((g) => g.id === el.dataset.group);
+        const item = group?.items.find((t) => t.id === el.dataset.editItem);
+        if (!item) return;
+        const allTools = cache.toolGroups.flatMap((g) => g.items);
+        openToolModal(item, allTools, (fields) => {
+          Object.assign(item, fields);
           draw();
         });
       });
