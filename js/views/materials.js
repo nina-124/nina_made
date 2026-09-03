@@ -185,10 +185,11 @@ function openToolModal(allTools, onSubmit) {
           </div>
         </label>
         <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇"></label>
-        <label>廠商 <input type="text" name="vendor" list="opt-vendor" placeholder="輸入新的或從清單選擇"></label>
+        <label>廠商名稱 <input type="text" name="vendorName" list="opt-vendorName" placeholder="輸入新的或從清單選擇"></label>
+        <label>廠商網址 <input type="url" name="vendorUrl" placeholder="https://..."></label>
         ${renderDatalist('opt-name', collectOptions(allTools, 'name'))}
         ${renderDatalist('opt-platform', collectOptions(allTools, 'platform'))}
-        ${renderDatalist('opt-vendor', collectOptions(allTools, 'vendor'))}
+        ${renderDatalist('opt-vendorName', collectOptions(allTools, 'vendorName'))}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
           <button type="button" class="btn btn-primary" data-submit>新增</button>
@@ -209,7 +210,8 @@ function openToolModal(allTools, onSubmit) {
       name,
       quantity: Number(overlay.querySelector('[name="quantity"]').value) || 0,
       platform: get('platform'),
-      vendor: get('vendor'),
+      vendorName: get('vendorName'),
+      vendorUrl: get('vendorUrl'),
     });
     close();
   });
@@ -375,7 +377,7 @@ async function renderYarnPage(container, ctx) {
 
 // ---------- 工具頁 ----------
 function renderToolGroup(group, keyword) {
-  const tools = group.items.filter((t) => matchesSearch(t, ['name', 'platform', 'vendor'], keyword));
+  const tools = group.items.filter((t) => matchesSearch(t, ['name', 'platform', 'vendorName'], keyword));
   if (keyword && !tools.length) return '';
   return `
     <div class="material-group" data-group="${group.id}">
@@ -400,7 +402,7 @@ function renderToolGroup(group, keyword) {
             <div>${t.name}</div>
             <div>${t.quantity ?? ''}</div>
             <div>${t.platform || ''}</div>
-            <div>${t.vendor || ''}</div>
+            <div>${renderVendorLink(t)}</div>
             <div>${t.createdAt || ''}</div>
             ${editMode ? `<div><button class="del-btn" data-del-item="${t.id}" data-group="${group.id}" style="position:static;">&#10005;</button></div>` : ''}
           </div>`

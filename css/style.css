@@ -492,7 +492,7 @@ a { color: inherit; }
 .material-table.is-editing .material-row { grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1fr 28px; }
 .material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr; font-size: 13px; }
 .material-table-yarn.is-editing .material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr 28px; }
-.material-row-yarn a { color: var(--green-700); }
+.material-row a { color: var(--green-700); }
 .material-row-head {
   font-weight: 700;
   color: var(--text-grey);
