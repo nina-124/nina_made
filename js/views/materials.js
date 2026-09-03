@@ -8,7 +8,7 @@ let sha = null;
 let editMode = false;
 
 function emptyData() {
-  return { yarnGroups: [], tools: [] };
+  return { yarnGroups: [], toolGroups: [] };
 }
 
 async function loadData(token) {
@@ -16,7 +16,7 @@ async function loadData(token) {
   const result = await getJsonFile(PRIVATE_REPO, DATA_PATH, token);
   cache = result.data || emptyData();
   if (!cache.yarnGroups) cache.yarnGroups = [];
-  if (!cache.tools) cache.tools = [];
+  if (!cache.toolGroups) cache.toolGroups = [];
   sha = result.sha;
   return cache;
 }
@@ -59,15 +59,16 @@ function matchesSearch(item, fields, keyword) {
   return fields.some((f) => String(item[f] || '').toLowerCase().includes(kw));
 }
 
-// ---------- modal：新增/編輯品牌 ----------
-function openGroupModal(existing, onSubmit) {
+// ---------- modal：新增/編輯分組（線材頁＝品牌，工具頁＝物品） ----------
+function openGroupModal(existing, onSubmit, opts = {}) {
+  const { addTitle = '新增分組', editTitle = '編輯分組', fieldLabel = '名稱', placeholder = '' } = opts;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>${existing ? '編輯品牌' : '新增品牌'}</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? editTitle : addTitle}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>品牌名稱 <input type="text" name="name" placeholder="例如：蘇蘇姐家" value="${existing?.name || ''}"></label>
+        <label>${fieldLabel} <input type="text" name="name" placeholder="${placeholder}" value="${existing?.name || ''}"></label>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
           <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
@@ -317,20 +318,28 @@ async function renderYarnPage(container, ctx) {
     const addGroupBtn = container.querySelector('#add-group-btn');
     if (addGroupBtn) {
       addGroupBtn.addEventListener('click', () => {
-        openGroupModal(null, ({ name }) => {
-          cache.yarnGroups.push({ id: newId(), name, items: [] });
-          draw();
-        });
+        openGroupModal(
+          null,
+          ({ name }) => {
+            cache.yarnGroups.push({ id: newId(), name, items: [] });
+            draw();
+          },
+          { addTitle: '新增品牌', fieldLabel: '品牌名稱', placeholder: '例如：蘇蘇姐家' }
+        );
       });
     }
 
     container.querySelectorAll('[data-edit-group]').forEach((el) => {
       el.addEventListener('click', () => {
         const group = cache.yarnGroups.find((g) => g.id === el.dataset.editGroup);
-        openGroupModal(group, ({ name }) => {
-          group.name = name;
-          draw();
-        });
+        openGroupModal(
+          group,
+          ({ name }) => {
+            group.name = name;
+            draw();
+          },
+          { editTitle: '編輯品牌', fieldLabel: '品牌名稱', placeholder: '例如：蘇蘇姐家' }
+        );
       });
     });
 
@@ -365,19 +374,20 @@ async function renderYarnPage(container, ctx) {
 }
 
 // ---------- 工具頁 ----------
-async function renderToolsPage(container, ctx) {
-  await loadData(ctx.token);
-  const rerender = () => renderToolsPage(container, ctx);
-  let keyword = '';
-
-  const draw = () => {
-    const tools = cache.tools.filter((t) => matchesSearch(t, ['name', 'platform', 'vendor'], keyword));
-    container.innerHTML = `
-      <div class="topbar">
-        <div class="breadcrumb"><span>工具</span></div>
-        <div class="search-box">${ICONS.search}<input placeholder="搜尋名稱、平台、廠商" id="materials-search" value="${keyword}"></div>
-        ${editMode ? `<button class="icon-btn" id="add-tool-btn" title="新增工具">&#65291;</button>` : ''}
-        <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${editMode ? ICONS.check : ICONS.pencil}</button>
+function renderToolGroup(group, keyword) {
+  const tools = group.items.filter((t) => matchesSearch(t, ['name', 'platform', 'vendor'], keyword));
+  if (keyword && !tools.length) return '';
+  return `
+    <div class="material-group" data-group="${group.id}">
+      <div class="material-group-head">
+        <span class="material-group-tag">${group.name}</span>
+        ${
+          editMode
+            ? `<button class="del-btn" data-edit-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
+               <button class="del-btn" data-del-group="${group.id}" style="position:static;">&#10005;</button>
+               <button class="link-btn" data-add-item="${group.id}">&#65291; 新增工具</button>`
+            : ''
+        }
       </div>
       <div class="material-table ${editMode ? 'is-editing' : ''}">
         <div class="material-row material-row-head material-row-tools">
@@ -392,12 +402,32 @@ async function renderToolsPage(container, ctx) {
             <div>${t.platform || ''}</div>
             <div>${t.vendor || ''}</div>
             <div>${t.createdAt || ''}</div>
-            ${editMode ? `<div><button class="del-btn" data-del-tool="${t.id}" style="position:static;">&#10005;</button></div>` : ''}
+            ${editMode ? `<div><button class="del-btn" data-del-item="${t.id}" data-group="${group.id}" style="position:static;">&#10005;</button></div>` : ''}
           </div>`
           )
           .join('')}
+        ${!tools.length ? `<div class="empty-hint" style="padding:16px 0;">還沒有工具資料</div>` : ''}
       </div>
-      ${!tools.length ? `<div class="empty-hint">還沒有任何工具資料</div>` : ''}
+    </div>`;
+}
+
+async function renderToolsPage(container, ctx) {
+  await loadData(ctx.token);
+  const rerender = () => renderToolsPage(container, ctx);
+  let keyword = '';
+
+  const draw = () => {
+    container.innerHTML = `
+      <div class="topbar">
+        <div class="breadcrumb"><span>工具</span></div>
+        <div class="search-box">${ICONS.search}<input placeholder="搜尋名稱、平台、廠商" id="materials-search" value="${keyword}"></div>
+        ${editMode ? `<button class="icon-btn" id="add-group-btn" title="新增物品">&#65291;</button>` : ''}
+        <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${editMode ? ICONS.check : ICONS.pencil}</button>
+      </div>
+      <div class="material-groups">
+        ${cache.toolGroups.map((g) => renderToolGroup(g, keyword)).join('')}
+      </div>
+      ${!cache.toolGroups.length ? `<div class="empty-hint">還沒有任何物品，${editMode ? '點右上角「+」新增' : '進入編輯模式即可新增'}</div>` : ''}
     `;
 
     const searchInput = container.querySelector('#materials-search');
@@ -414,19 +444,56 @@ async function renderToolsPage(container, ctx) {
 
     toggleEdit(container, ctx, rerender);
 
-    const addToolBtn = container.querySelector('#add-tool-btn');
-    if (addToolBtn) {
-      addToolBtn.addEventListener('click', () => {
-        openToolModal(cache.tools, (fields) => {
-          cache.tools.push({ id: newId(), ...fields, createdAt: today() });
-          draw();
-        });
+    const addGroupBtn = container.querySelector('#add-group-btn');
+    if (addGroupBtn) {
+      addGroupBtn.addEventListener('click', () => {
+        openGroupModal(
+          null,
+          ({ name }) => {
+            cache.toolGroups.push({ id: newId(), name, items: [] });
+            draw();
+          },
+          { addTitle: '新增物品', fieldLabel: '物品名稱', placeholder: '例如：勾針' }
+        );
       });
     }
 
-    container.querySelectorAll('[data-del-tool]').forEach((el) => {
+    container.querySelectorAll('[data-edit-group]').forEach((el) => {
       el.addEventListener('click', () => {
-        cache.tools = cache.tools.filter((t) => t.id !== el.dataset.delTool);
+        const group = cache.toolGroups.find((g) => g.id === el.dataset.editGroup);
+        openGroupModal(
+          group,
+          ({ name }) => {
+            group.name = name;
+            draw();
+          },
+          { editTitle: '編輯物品', fieldLabel: '物品名稱', placeholder: '例如：勾針' }
+        );
+      });
+    });
+
+    container.querySelectorAll('[data-del-group]').forEach((el) => {
+      el.addEventListener('click', () => {
+        cache.toolGroups = cache.toolGroups.filter((g) => g.id !== el.dataset.delGroup);
+        draw();
+      });
+    });
+
+    container.querySelectorAll('[data-add-item]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const group = cache.toolGroups.find((g) => g.id === el.dataset.addItem);
+        const allTools = cache.toolGroups.flatMap((g) => g.items);
+        openToolModal(allTools, (fields) => {
+          group.items.push({ id: newId(), ...fields, createdAt: today() });
+          draw();
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-del-item]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const group = cache.toolGroups.find((g) => g.id === el.dataset.group);
+        if (group) group.items = group.items.filter((t) => t.id !== el.dataset.delItem);
         draw();
       });
     });
