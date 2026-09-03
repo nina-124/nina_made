@@ -30,23 +30,6 @@ function emptyData() {
   return { items: [] };
 }
 
-if (typeof window !== 'undefined') {
-  const A4_PRINTABLE_HEIGHT_PX = (297 * 96) / 25.4; // @page margin 為 0（改由 #print-area 自己的 padding 撐開留白，避免瀏覽器印出頁首頁尾），故以整頁高度計算
-
-  window.addEventListener('beforeprint', () => {
-    const area = document.getElementById('print-area');
-    if (!area) return;
-    document.documentElement.style.setProperty('--print-scale', '1');
-    const naturalHeight = area.scrollHeight;
-    const scale = naturalHeight > A4_PRINTABLE_HEIGHT_PX ? A4_PRINTABLE_HEIGHT_PX / naturalHeight : 1;
-    document.documentElement.style.setProperty('--print-scale', String(scale));
-  });
-
-  window.addEventListener('afterprint', () => {
-    document.documentElement.style.setProperty('--print-scale', '1');
-  });
-}
-
 async function loadData(token) {
   if (cache) return cache;
   const result = await getJsonFile(PRIVATE_REPO, DATA_PATH, token);

@@ -1,5 +1,4 @@
 :root {
-  --print-scale: 1;
   --green-600: #6e7f52;
   --green-700: #4b5a3c;
   --green-800: #37432d;
@@ -476,7 +475,7 @@ a { color: inherit; }
   body { background: #fff; }
   .sidebar, .topbar, .logout-link { display: none !important; }
   .main { padding: 0; }
-  #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; zoom: var(--print-scale, 1); }
+  #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; }
   .diagram-top { break-inside: avoid; gap: 10px; flex-direction: row; }
   .diagram-top-left { flex: 2; width: auto; }
   .diagram-top-left .work-detail-name { font-size: 20pt; margin-bottom: 6px; }
