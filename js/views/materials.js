@@ -227,7 +227,7 @@ async function toggleEdit(container, ctx, rerender) {
         rerender();
         return;
       }
-      await commitCache(ctx.token, '更新綫材&工具');
+      await commitCache(ctx.token, '更新線材&工具');
       editMode = false;
       notifyEditModeChanged();
       notifyUpdated();
@@ -239,7 +239,7 @@ async function toggleEdit(container, ctx, rerender) {
   });
 }
 
-// ---------- 綫材頁 ----------
+// ---------- 線材頁 ----------
 function renderYarnGroup(group, keyword) {
   const items = group.items.filter((it) =>
     matchesSearch(it, ['category', 'yarnType', 'ply', 'colorCode', 'platform', 'vendorName'], keyword)
@@ -289,7 +289,7 @@ async function renderYarnPage(container, ctx) {
   const draw = () => {
     container.innerHTML = `
       <div class="topbar">
-        <div class="breadcrumb"><span>綫材</span></div>
+        <div class="breadcrumb"><span>線材</span></div>
         <div class="search-box">${ICONS.search}<input placeholder="搜尋品牌、線材、色號" id="materials-search" value="${keyword}"></div>
         ${editMode ? `<button class="icon-btn" id="add-group-btn" title="新增品牌">&#65291;</button>` : ''}
         <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${editMode ? ICONS.check : ICONS.pencil}</button>

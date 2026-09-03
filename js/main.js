@@ -35,7 +35,7 @@ function renderMaterialsSubnav() {
   if (!subnav) return;
   const activeTab = currentMaterialsPath[0] === 'tools' ? 'tools' : 'yarn';
   subnav.innerHTML = `
-    <div class="nav-subitem ${activeTab === 'yarn' ? 'active' : ''}" data-materials-tab="yarn">綫材</div>
+    <div class="nav-subitem ${activeTab === 'yarn' ? 'active' : ''}" data-materials-tab="yarn">線材</div>
     <div class="nav-subitem ${activeTab === 'tools' ? 'active' : ''}" data-materials-tab="tools">工具</div>
   `;
   subnav.querySelectorAll('[data-materials-tab]').forEach((el) => {
@@ -127,7 +127,7 @@ function renderShell() {
     <div class="nav-section" id="works-subnav"></div>
     ${ctx.authed ? `<button class="nav-item" data-nav="diagrams"><span class="nav-icon">${ICONS.book}</span>圖解</button>` : ''}
     ${ctx.authed ? `<div class="nav-section" id="diagrams-subnav"></div>` : ''}
-    ${ctx.authed ? `<button class="nav-item" data-nav="materials"><span class="nav-icon">${ICONS.scissors}</span>綫材&工具</button>` : ''}
+    ${ctx.authed ? `<button class="nav-item" data-nav="materials"><span class="nav-icon">${ICONS.scissors}</span>線材&工具</button>` : ''}
     ${ctx.authed ? `<div class="nav-section" id="materials-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="settings"><span class="nav-icon">${ICONS.sliders}</span>設定</button>` : ''}
   `;

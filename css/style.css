@@ -454,7 +454,7 @@ a { color: inherit; }
   padding: 0;
 }
 
-/* --- 綫材&工具 --- */
+/* --- 線材&工具 --- */
 .material-groups { display: flex; flex-direction: column; gap: 24px; }
 
 .material-group {
