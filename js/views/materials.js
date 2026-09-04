@@ -122,7 +122,13 @@ function openYarnModal(existing, allItems, onSubmit) {
         <label>種類 <input type="text" name="category" list="opt-category" placeholder="輸入新的或從清單選擇" value="${v('category')}"></label>
         <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇" value="${v('yarnType')}"></label>
         <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇" value="${v('ply')}"></label>
-        <label>色號 <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇" value="${v('colorCode')}"></label>
+        <label>色號
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇" value="${v('colorCode')}" style="flex:1;">
+            <input type="text" name="colorHex" placeholder="#RRGGBB" value="${v('colorHex')}" style="width:90px; border-radius:10px; border:1px solid var(--card-border); padding:10px 8px; font-family:inherit; font-size:14px;">
+            <input type="color" name="colorHexPicker" value="${/^#[0-9A-Fa-f]{6}$/.test(v('colorHex')) ? v('colorHex') : '#ffffff'}" style="width:36px; height:36px; padding:0; border:1px solid var(--card-border); border-radius:8px; flex-shrink:0;">
+          </div>
+        </label>
         <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇" value="${v('platform')}"></label>
         <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE" value="${v('vendorName')}"></label>
         <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..." value="${v('vendorUrl')}"></label>
@@ -150,6 +156,17 @@ function openYarnModal(existing, allItems, onSubmit) {
   overlay.querySelector('[data-cancel]').addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   bindQtyStepper(overlay);
+
+  const hexInput = overlay.querySelector('[name="colorHex"]');
+  const hexPicker = overlay.querySelector('[name="colorHexPicker"]');
+  hexInput.addEventListener('input', () => {
+    const hex = hexInput.value.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) hexPicker.value = hex;
+  });
+  hexPicker.addEventListener('input', () => {
+    hexInput.value = hexPicker.value;
+  });
+
   overlay.querySelector('[data-submit]').addEventListener('click', () => {
     const get = (name) => overlay.querySelector(`[name="${name}"]`).value.trim();
     const category = get('category');
@@ -160,6 +177,7 @@ function openYarnModal(existing, allItems, onSubmit) {
       yarnType,
       ply: get('ply'),
       colorCode: get('colorCode'),
+      colorHex: get('colorHex'),
       platform: get('platform'),
       vendorName: get('vendorName'),
       vendorUrl: get('vendorUrl'),
@@ -272,7 +290,14 @@ function renderYarnGroup(group, keyword) {
           <div class="material-row material-row-yarn" data-item="${it.id}">
             <div>${it.category ? `${it.category} ` : ''}${it.yarnType || ''}</div>
             <div>${it.ply || ''}</div>
-            <div>${it.colorCode || ''}</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${
+                /^#[0-9A-Fa-f]{6}$/.test(it.colorHex || '')
+                  ? `<span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:${it.colorHex}; border:1px solid var(--card-border); flex-shrink:0;"></span>`
+                  : ''
+              }
+              <span>${it.colorCode || ''}</span>
+            </div>
             <div>${it.platform || ''}</div>
             <div>${renderVendorLink(it)}</div>
             <div>${it.quantity ?? ''}</div>
