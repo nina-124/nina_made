@@ -515,13 +515,14 @@ a { color: inherit; }
   gap: 10px;
   margin-bottom: 10px;
 }
-.diagram-table-head h3 { margin: 0; }
+.diagram-table-head h3 { margin: 0; font-size: 20pt; }
 .diagram-table-head .part-name {
   flex: 1;
   border-radius: 8px;
   border: 1px solid var(--card-border);
   padding: 6px 10px;
   font-weight: 700;
+  font-size: 20pt;
 }
 
 .diagram-grid-row {
