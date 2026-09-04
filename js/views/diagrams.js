@@ -441,15 +441,28 @@ function renderColorPalette() {
 
 const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
+function closestCellEdit(node) {
+  while (node && node.nodeType !== 1) node = node.parentNode;
+  return node ? node.closest('.cell-edit') : null;
+}
+
 function bindColorPalette(container) {
   const applyColor = (color) => {
-    if (savedSelectionRange) {
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(savedSelectionRange);
+    const range = savedSelectionRange;
+    if (!range) return;
+    const cell = closestCellEdit(range.commonAncestorContainer);
+    if (!cell) return;
+    const span = document.createElement('span');
+    span.style.color = color;
+    try {
+      range.surroundContents(span);
+    } catch {
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
     }
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand('foreColor', false, color);
+    cell.dispatchEvent(new Event('input', { bubbles: true }));
+    savedSelectionRange = null;
   };
   container.querySelectorAll('.color-swatch').forEach((btn) => {
     btn.addEventListener('mousedown', (e) => e.preventDefault());
@@ -684,7 +697,7 @@ async function renderPatternEditor(container, node, trail, ctx) {
         <div class="diagram-top-left">
           <h2 class="work-detail-name">${node.name}</h2>
           <div class="diagram-yarn">
-            <label style="font-weight:700;">線材需求</label>
+            <label style="font-weight:700;">補充說明</label>
             ${
               editMode
                 ? `<textarea id="yarn-note" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #c7d8b8; padding:10px; font-family:inherit;">${node.yarnNote || ''}</textarea>`
