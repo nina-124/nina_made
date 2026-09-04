@@ -51,6 +51,10 @@ function notifyEditModeChanged() {
   window.dispatchEvent(new CustomEvent('works:editmode-changed'));
 }
 
+function newId() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 function slugify(name) {
   const base =
     name.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/(^-|-$)/g, '') || 'item';
@@ -84,13 +88,24 @@ async function commitCache(token, message) {
 }
 
 async function commitPendingWorkImage(work, token) {
-  if (!work.coverPending) return;
-  const path = `assets/img/works/${work.id}.jpg`;
-  const base64 = work.coverPending.split(',')[1];
-  await uploadImageFile(PUBLIC_REPO, path, base64, token, `更新作品照片 ${work.name}`);
-  localPreviewCache.set(work.id, work.coverPending);
-  work.cover = path;
-  delete work.coverPending;
+  if (work.coverPending) {
+    const path = `assets/img/works/${work.id}.jpg`;
+    const base64 = work.coverPending.split(',')[1];
+    await uploadImageFile(PUBLIC_REPO, path, base64, token, `更新作品照片 ${work.name}`);
+    localPreviewCache.set(work.id, work.coverPending);
+    work.cover = path;
+    delete work.coverPending;
+  }
+  if (work.photosPending?.length) {
+    work.photos = work.photos || [];
+    for (const dataUrl of work.photosPending) {
+      const path = `assets/img/works/${work.id}-${newId()}.jpg`;
+      const base64 = dataUrl.split(',')[1];
+      await uploadImageFile(PUBLIC_REPO, path, base64, token, `新增作品照片 ${work.name}`);
+      work.photos.push(path);
+    }
+    delete work.photosPending;
+  }
 }
 
 export function openCategoryModal(onSubmit) {
@@ -127,6 +142,8 @@ export function openCategoryModal(onSubmit) {
   });
 }
 
+const MAX_EXTRA_PHOTOS = 4; // 加上封面照片，一件作品最多 5 張
+
 function openWorkModal({ categories, existing }, onSubmit) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -138,6 +155,10 @@ function openWorkModal({ categories, existing }, onSubmit) {
         </label>`
     )
     .join('');
+
+  let keptPhotos = [...(existing?.photos || [])];
+  let newPhotos = []; // { src: dataUrl } 尚未上傳的新照片
+
   overlay.innerHTML = `
     <div class="modal-box">
       <div class="modal-header"><span>${existing ? '編輯作品' : '新增作品'}</span><span class="close-x">&#10005;</span></div>
@@ -151,6 +172,10 @@ function openWorkModal({ categories, existing }, onSubmit) {
                </label>`
             : ''
         }
+        <label>更多照片（連封面最多 5 張）
+          <div class="extra-photo-strip" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <input type="file" name="extraPhoto" accept="image/*" style="margin-top:6px;">
+        </label>
         <label>分類（可複選）</label>
         <div style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto;">
           ${checkboxes || '<span style="color:#a7b39c; font-size:13px;">還沒有任何分類，先在左側新增分類</span>'}
@@ -168,6 +193,58 @@ function openWorkModal({ categories, existing }, onSubmit) {
   overlay.querySelector('[data-cancel]').addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
+  const extraInput = overlay.querySelector('input[name="extraPhoto"]');
+  const strip = overlay.querySelector('.extra-photo-strip');
+
+  const totalExtra = () => keptPhotos.length + newPhotos.length;
+
+  const drawStrip = () => {
+    strip.innerHTML = `
+      ${keptPhotos
+        .map(
+          (src, i) => `
+        <div style="position:relative; width:56px; height:56px;">
+          <img src="${src}" style="width:100%; height:100%; object-fit:cover; border-radius:8px; display:block;">
+          <button type="button" class="del-btn" data-remove-kept="${i}" style="position:absolute; top:-6px; right:-6px;">&#10005;</button>
+        </div>`
+        )
+        .join('')}
+      ${newPhotos
+        .map(
+          (p, i) => `
+        <div style="position:relative; width:56px; height:56px;">
+          <img src="${p.src}" style="width:100%; height:100%; object-fit:cover; border-radius:8px; display:block;">
+          <button type="button" class="del-btn" data-remove-new="${i}" style="position:absolute; top:-6px; right:-6px;">&#10005;</button>
+        </div>`
+        )
+        .join('')}
+    `;
+    strip.querySelectorAll('[data-remove-kept]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        keptPhotos.splice(Number(btn.dataset.removeKept), 1);
+        drawStrip();
+      });
+    });
+    strip.querySelectorAll('[data-remove-new]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        newPhotos.splice(Number(btn.dataset.removeNew), 1);
+        drawStrip();
+      });
+    });
+    extraInput.disabled = totalExtra() >= MAX_EXTRA_PHOTOS;
+    extraInput.title = extraInput.disabled ? `最多只能再新增 ${MAX_EXTRA_PHOTOS} 張` : '';
+  };
+  drawStrip();
+
+  extraInput.addEventListener('change', async () => {
+    const file = extraInput.files[0];
+    extraInput.value = '';
+    if (!file || totalExtra() >= MAX_EXTRA_PHOTOS) return;
+    const src = await resizeImageToDataUrl(file);
+    newPhotos.push({ src });
+    drawStrip();
+  });
+
   overlay.querySelector('[data-submit]').addEventListener('click', async () => {
     const name = overlay.querySelector('input[name="name"]').value.trim();
     if (!name) return;
@@ -179,7 +256,14 @@ function openWorkModal({ categories, existing }, onSubmit) {
     let coverPending = null;
     if (file) coverPending = await resizeImageToDataUrl(file);
     const removeCover = overlay.querySelector('input[name="removeCover"]')?.checked || false;
-    onSubmit({ name, categoryIds, coverPending, removeCover });
+    onSubmit({
+      name,
+      categoryIds,
+      coverPending,
+      removeCover,
+      photos: keptPhotos,
+      newPhotos: newPhotos.map((p) => p.src),
+    });
     close();
   });
 }
@@ -206,19 +290,27 @@ function renderCard(work, ctx) {
 }
 
 function openImageLightbox(work) {
-  const src = work.coverPending || localPreviewCache.get(work.id) || work.cover;
+  const coverSrc = work.coverPending || localPreviewCache.get(work.id) || work.cover;
+  const photos = [coverSrc, ...(work.photos || [])].filter(Boolean);
+  let index = 0;
+
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box" style="width:auto; max-width:90vw; background:#fff;">
       <div class="modal-header"><span>${work.name}</span><span class="close-x">&#10005;</span></div>
-      <div style="padding:16px; display:flex; justify-content:center;">
-        ${
-          src
-            ? `<img src="${src}" alt="${work.name}" style="max-width:100%; max-height:70vh; border-radius:12px; display:block;">`
-            : '<div class="empty-hint">尚未上傳照片</div>'
-        }
+      <div style="padding:16px; display:flex; align-items:center; justify-content:center; gap:10px;">
+        ${photos.length > 1 ? `<button type="button" class="icon-btn" data-prev>&#8249;</button>` : ''}
+        <div class="lightbox-img-wrap">
+          ${
+            photos.length
+              ? `<img src="${photos[0]}" alt="${work.name}" style="max-width:100%; max-height:70vh; border-radius:12px; display:block;">`
+              : '<div class="empty-hint">尚未上傳照片</div>'
+          }
+        </div>
+        ${photos.length > 1 ? `<button type="button" class="icon-btn" data-next">&#8250;</button>` : ''}
       </div>
+      ${photos.length > 1 ? `<div style="text-align:center; padding-bottom:14px; color:var(--text-grey); font-size:13px;" data-counter>1 / ${photos.length}</div>` : ''}
     </div>
   `;
   document.body.appendChild(overlay);
@@ -226,6 +318,21 @@ function openImageLightbox(work) {
   overlay.querySelector('.close-x').addEventListener('click', close);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
+  });
+
+  const imgWrap = overlay.querySelector('.lightbox-img-wrap');
+  const counter = overlay.querySelector('[data-counter]');
+  const show = () => {
+    imgWrap.innerHTML = `<img src="${photos[index]}" alt="${work.name}" style="max-width:100%; max-height:70vh; border-radius:12px; display:block;">`;
+    if (counter) counter.textContent = `${index + 1} / ${photos.length}`;
+  };
+  overlay.querySelector('[data-prev]')?.addEventListener('click', () => {
+    index = (index - 1 + photos.length) % photos.length;
+    show();
+  });
+  overlay.querySelector('[data-next]')?.addEventListener('click', () => {
+    index = (index + 1) % photos.length;
+    show();
   });
 }
 
@@ -277,7 +384,7 @@ function renderGallery(container, data, filterCategoryId, ctx) {
       const work = cache.works.find((w) => w.id === el.dataset.edit);
       openWorkModal(
         { categories: cache.categories, existing: work },
-        ({ name, categoryIds, coverPending, removeCover }) => {
+        ({ name, categoryIds, coverPending, removeCover, photos, newPhotos }) => {
           work.name = name;
           work.categoryIds = categoryIds;
           if (removeCover) {
@@ -286,6 +393,8 @@ function renderGallery(container, data, filterCategoryId, ctx) {
             localPreviewCache.delete(work.id);
           }
           if (coverPending) work.coverPending = coverPending;
+          work.photos = photos;
+          if (newPhotos.length) work.photosPending = newPhotos;
           renderGallery(container, cache, filterCategoryId, ctx);
         }
       );
@@ -295,12 +404,16 @@ function renderGallery(container, data, filterCategoryId, ctx) {
   const addCard = container.querySelector('#add-card');
   if (addCard) {
     addCard.addEventListener('click', () => {
-      openWorkModal({ categories: cache.categories, existing: null }, ({ name, categoryIds, coverPending }) => {
-        const work = { id: slugify(name), name, categoryIds };
-        if (coverPending) work.coverPending = coverPending;
-        cache.works.push(work);
-        renderGallery(container, cache, filterCategoryId, ctx);
-      });
+      openWorkModal(
+        { categories: cache.categories, existing: null },
+        ({ name, categoryIds, coverPending, newPhotos }) => {
+          const work = { id: slugify(name), name, categoryIds };
+          if (coverPending) work.coverPending = coverPending;
+          if (newPhotos.length) work.photosPending = newPhotos;
+          cache.works.push(work);
+          renderGallery(container, cache, filterCategoryId, ctx);
+        }
+      );
     });
   }
 
