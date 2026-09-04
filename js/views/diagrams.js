@@ -456,8 +456,10 @@ function bindColorPalette(container) {
     span.style.color = color;
     try {
       range.surroundContents(span);
+      span.querySelectorAll('[style]').forEach((el) => { el.style.color = ''; });
     } catch {
       const frag = range.extractContents();
+      frag.querySelectorAll('[style]').forEach((el) => { el.style.color = ''; });
       span.appendChild(frag);
       range.insertNode(span);
     }
