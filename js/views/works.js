@@ -308,7 +308,7 @@ function openImageLightbox(work) {
               : '<div class="empty-hint">尚未上傳照片</div>'
           }
         </div>
-        ${photos.length > 1 ? `<button type="button" class="icon-btn" data-next">&#8250;</button>` : ''}
+        ${photos.length > 1 ? `<button type="button" class="icon-btn" data-next>&#8250;</button>` : ''}
       </div>
       ${photos.length > 1 ? `<div style="text-align:center; padding-bottom:14px; color:var(--text-grey); font-size:13px;" data-counter>1 / ${photos.length}</div>` : ''}
     </div>
