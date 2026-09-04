@@ -489,17 +489,20 @@ a { color: inherit; }
   font-size: 12px;
   font-family: inherit;
 }
-.color-custom-apply {
+.color-custom-preview {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--green-600);
-  background: #fff;
-  color: var(--green-700);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--card-border);
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
   flex-shrink: 0;
+  transition: box-shadow 0.15s ease;
+}
+.color-custom-preview:not(:disabled):hover { box-shadow: 0 0 0 2px var(--gold); }
+.color-custom-preview:disabled {
+  background: repeating-linear-gradient(45deg, #eee, #eee 3px, #fff 3px, #fff 6px);
+  cursor: not-allowed;
 }
 
 .diagram-tables { display: flex; flex-direction: column; gap: 20px; }

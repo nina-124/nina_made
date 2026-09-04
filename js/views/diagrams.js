@@ -431,10 +431,10 @@ function renderColorPalette() {
           (c) => `<button type="button" class="color-swatch" data-color="${c}" style="background:${c}"></button>`
         )
         .join('')}
-      <form class="color-custom-form" data-custom-form>
+      <div class="color-custom-form">
         <input type="text" class="color-custom" data-color-custom placeholder="#RRGGBB" maxlength="7">
-        <button type="submit" class="color-custom-apply" title="套用自訂色碼">&#10003;</button>
-      </form>
+        <button type="button" class="color-custom-preview" data-color-preview title="套用此色碼" disabled></button>
+      </div>
     </div>
   `;
 }
@@ -468,17 +468,21 @@ function bindColorPalette(container) {
     btn.addEventListener('mousedown', (e) => e.preventDefault());
     btn.addEventListener('click', () => applyColor(btn.dataset.color));
   });
-  const form = container.querySelector('[data-custom-form]');
   const custom = container.querySelector('[data-color-custom]');
-  if (form && custom) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+  const preview = container.querySelector('[data-color-preview]');
+  if (custom && preview) {
+    const sync = () => {
       const value = custom.value.trim();
-      if (!HEX_COLOR_RE.test(value)) {
-        alert('請輸入正確的色碼格式，例如 #ff3b30');
-        return;
-      }
-      applyColor(value);
+      const valid = HEX_COLOR_RE.test(value);
+      preview.disabled = !valid;
+      preview.style.background = valid ? value : '';
+    };
+    custom.addEventListener('input', sync);
+    sync();
+    preview.addEventListener('mousedown', (e) => e.preventDefault());
+    preview.addEventListener('click', () => {
+      const value = custom.value.trim();
+      if (HEX_COLOR_RE.test(value)) applyColor(value);
     });
   }
 }
