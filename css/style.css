@@ -364,6 +364,7 @@ a { color: inherit; }
   overflow: hidden;
   box-shadow: 0 20px 45px rgba(54, 75, 53, 0.3);
 }
+.modal-box-wide { width: 460px; }
 .modal-header {
   padding: 14px 20px;
   background: linear-gradient(90deg, var(--green-800), var(--green-600));
@@ -385,6 +386,19 @@ a { color: inherit; }
   padding: 10px 12px;
   font-family: inherit;
   font-size: 14px;
+  min-width: 0;
+}
+.modal-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.modal-row label { flex: 1 1 140px; min-width: 0; }
+.color-code-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.color-code-row input[name="colorCode"] { flex: 1 1 140px; min-width: 0; }
+.color-hex-input { width: 100px; flex: 0 0 auto; }
+.color-hex-picker {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  border-radius: 8px;
+  flex: 0 0 auto;
 }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .btn {

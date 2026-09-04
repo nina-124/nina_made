@@ -116,30 +116,34 @@ function openYarnModal(existing, allItems, onSubmit) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box modal-box-wide">
       <div class="modal-header"><span>${existing ? '編輯線材' : '新增線材'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>種類 <input type="text" name="category" list="opt-category" placeholder="輸入新的或從清單選擇" value="${v('category')}"></label>
-        <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇" value="${v('yarnType')}"></label>
-        <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇" value="${v('ply')}"></label>
+        <div class="modal-row">
+          <label>線材 <input type="text" name="yarnType" list="opt-yarnType" placeholder="輸入新的或從清單選擇" value="${v('yarnType')}"></label>
+          <label>股數 <input type="text" name="ply" list="opt-ply" placeholder="輸入新的或從清單選擇" value="${v('ply')}"></label>
+        </div>
         <label>色號
-          <div style="display:flex; align-items:center; gap:8px;">
-            <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇" value="${v('colorCode')}" style="flex:1;">
-            <input type="text" name="colorHex" placeholder="#RRGGBB" value="${v('colorHex')}" style="width:90px; border-radius:10px; border:1px solid var(--card-border); padding:10px 8px; font-family:inherit; font-size:14px;">
-            <input type="color" name="colorHexPicker" value="${/^#[0-9A-Fa-f]{6}$/.test(v('colorHex')) ? v('colorHex') : '#ffffff'}" style="width:36px; height:36px; padding:0; border:1px solid var(--card-border); border-radius:8px; flex-shrink:0;">
+          <div class="color-code-row">
+            <input type="text" name="colorCode" list="opt-colorCode" placeholder="輸入新的或從清單選擇" value="${v('colorCode')}">
+            <input type="text" name="colorHex" placeholder="#RRGGBB" value="${v('colorHex')}" class="color-hex-input">
+            <input type="color" name="colorHexPicker" value="${/^#[0-9A-Fa-f]{6}$/.test(v('colorHex')) ? v('colorHex') : '#ffffff'}" class="color-hex-picker">
           </div>
         </label>
-        <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇" value="${v('platform')}"></label>
-        <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE" value="${v('vendorName')}"></label>
-        <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..." value="${v('vendorUrl')}"></label>
-        <label>數量
-          <div style="display:flex; align-items:center; gap:10px;">
-            <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
-            <input type="number" name="quantity" min="0" value="${existing ? existing.quantity ?? 1 : 1}" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
-            <button type="button" class="btn btn-secondary" data-qty-plus style="padding:6px 12px;">&#43;</button>
-          </div>
-        </label>
-        ${renderDatalist('opt-category', collectOptions(allItems, 'category'))}
+        <div class="modal-row">
+          <label>購買平台 <input type="text" name="platform" list="opt-platform" placeholder="輸入新的或從清單選擇" value="${v('platform')}"></label>
+          <label>商家名稱 <input type="text" name="vendorName" placeholder="例如：ARE" value="${v('vendorName')}"></label>
+        </div>
+        <div class="modal-row">
+          <label>商家網址 <input type="url" name="vendorUrl" placeholder="https://..." value="${v('vendorUrl')}"></label>
+          <label>數量
+            <div style="display:flex; align-items:center; gap:10px;">
+              <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
+              <input type="number" name="quantity" min="0" value="${existing ? existing.quantity ?? 1 : 1}" style="width:70px; text-align:center; border-radius:10px; border:1px solid var(--card-border); padding:8px;">
+              <button type="button" class="btn btn-secondary" data-qty-plus style="padding:6px 12px;">&#43;</button>
+            </div>
+          </label>
+        </div>
         ${renderDatalist('opt-yarnType', collectOptions(allItems, 'yarnType'))}
         ${renderDatalist('opt-ply', collectOptions(allItems, 'ply'))}
         ${renderDatalist('opt-colorCode', collectOptions(allItems, 'colorCode'))}
@@ -169,11 +173,9 @@ function openYarnModal(existing, allItems, onSubmit) {
 
   overlay.querySelector('[data-submit]').addEventListener('click', () => {
     const get = (name) => overlay.querySelector(`[name="${name}"]`).value.trim();
-    const category = get('category');
     const yarnType = get('yarnType');
-    if (!category && !yarnType) return;
+    if (!yarnType) return;
     onSubmit({
-      category,
       yarnType,
       ply: get('ply'),
       colorCode: get('colorCode'),
@@ -265,7 +267,7 @@ async function toggleEdit(container, ctx, rerender) {
 // ---------- 線材頁 ----------
 function renderYarnGroup(group, keyword) {
   const items = group.items.filter((it) =>
-    matchesSearch(it, ['category', 'yarnType', 'ply', 'colorCode', 'platform', 'vendorName'], keyword)
+    matchesSearch(it, ['yarnType', 'ply', 'colorCode', 'platform', 'vendorName'], keyword)
   );
   if (keyword && !items.length) return '';
   return `
@@ -282,13 +284,13 @@ function renderYarnGroup(group, keyword) {
       </div>
       <div class="material-table material-table-yarn ${editMode ? 'is-editing' : ''}">
         <div class="material-row material-row-head material-row-yarn">
-          <div>種類</div><div>股數</div><div>#色號</div><div>購買平台</div><div>商家</div><div>數量</div><div>建立時間</div>${editMode ? '<div></div>' : ''}
+          <div>線材</div><div>股數</div><div>#色號</div><div>購買平台</div><div>商家</div><div>數量</div><div>建立時間</div>${editMode ? '<div></div>' : ''}
         </div>
         ${items
           .map(
             (it) => `
           <div class="material-row material-row-yarn" data-item="${it.id}">
-            <div>${it.category ? `${it.category} ` : ''}${it.yarnType || ''}</div>
+            <div>${it.yarnType || ''}</div>
             <div>${it.ply || ''}</div>
             <div style="display:flex; align-items:center; gap:6px;">
               ${
