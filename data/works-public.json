@@ -7,6 +7,10 @@
     {
       "id": "迪士尼-krcy",
       "name": "迪士尼"
+    },
+    {
+      "id": "藝人-rq0s",
+      "name": "藝人"
     }
   ],
   "works": [
@@ -17,11 +21,32 @@
         "動漫-knre"
       ],
       "cover": "assets/img/works/名偵探柯南-犯人先生-onz7.jpg",
-      "photos": [
-        "assets/img/works/名偵探柯南-犯人先生-onz7-mtm94cult5jx.jpg",
-        "assets/img/works/名偵探柯南-犯人先生-onz7-mtm94e2zv1m7.jpg"
-      ],
+      "photos": [],
       "description": "長寬"
+    },
+    {
+      "id": "庫洛魔法使-小可-qjhg",
+      "name": "庫洛魔法使-小可",
+      "description": "",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "photos": [
+        "assets/img/works/庫洛魔法使-小可-qjhg-mtrarrg261ym.jpg",
+        "assets/img/works/庫洛魔法使-小可-qjhg-mtrarszg57w5.jpg",
+        "assets/img/works/庫洛魔法使-小可-qjhg-mtraruce3he3.jpg"
+      ]
+    },
+    {
+      "id": "藝人-王一博-rl1m",
+      "name": "藝人-王一博",
+      "description": "",
+      "categoryIds": [],
+      "photos": [
+        "assets/img/works/藝人-王一博-rl1m-mtrarvoywqr5.jpg",
+        "assets/img/works/藝人-王一博-rl1m-mtrarx9z7148.jpg",
+        "assets/img/works/藝人-王一博-rl1m-mtraryustk03.jpg"
+      ]
     }
   ]
 }
