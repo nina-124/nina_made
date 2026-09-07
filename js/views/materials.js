@@ -343,14 +343,19 @@ async function renderYarnPage(container, ctx) {
 
     const searchInput = container.querySelector('#materials-search');
     if (searchInput) {
-      searchInput.addEventListener('input', () => {
+      const applySearch = () => {
         keyword = searchInput.value;
         const caret = searchInput.selectionStart;
         draw();
         const el = container.querySelector('#materials-search');
         el.focus();
         el.setSelectionRange(caret, caret);
+      };
+      searchInput.addEventListener('input', (e) => {
+        if (e.isComposing) return; // 避免中/日文輸入法組字被重繪打斷
+        applySearch();
       });
+      searchInput.addEventListener('compositionend', applySearch);
     }
 
     toggleEdit(container, ctx, rerender);
@@ -493,14 +498,19 @@ async function renderToolsPage(container, ctx) {
 
     const searchInput = container.querySelector('#materials-search');
     if (searchInput) {
-      searchInput.addEventListener('input', () => {
+      const applySearch = () => {
         keyword = searchInput.value;
         const caret = searchInput.selectionStart;
         draw();
         const el = container.querySelector('#materials-search');
         el.focus();
         el.setSelectionRange(caret, caret);
+      };
+      searchInput.addEventListener('input', (e) => {
+        if (e.isComposing) return; // 避免中/日文輸入法組字被重繪打斷
+        applySearch();
       });
+      searchInput.addEventListener('compositionend', applySearch);
     }
 
     toggleEdit(container, ctx, rerender);
