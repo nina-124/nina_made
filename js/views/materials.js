@@ -199,6 +199,7 @@ function openToolModal(existing, allTools, onSubmit) {
       <div class="modal-header"><span>${existing ? '編輯工具' : '新增工具'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
         <label>名稱 <input type="text" name="name" list="opt-name" placeholder="例如：眼鏡" value="${v('name')}"></label>
+        <label>說明 <input type="text" name="note" placeholder="例如：近視用" value="${v('note')}"></label>
         <label>數量
           <div style="display:flex; align-items:center; gap:10px;">
             <button type="button" class="btn btn-secondary" data-qty-minus style="padding:6px 12px;">&#8722;</button>
@@ -230,6 +231,7 @@ function openToolModal(existing, allTools, onSubmit) {
     if (!name) return;
     onSubmit({
       name,
+      note: get('note'),
       quantity: Number(overlay.querySelector('[name="quantity"]').value) || 0,
       platform: get('platform'),
       vendorName: get('vendorName'),
@@ -426,7 +428,7 @@ async function renderYarnPage(container, ctx) {
 
 // ---------- 工具頁 ----------
 function renderToolGroup(group, keyword) {
-  const tools = group.items.filter((t) => matchesSearch(t, ['name', 'platform', 'vendorName'], keyword));
+  const tools = group.items.filter((t) => matchesSearch(t, ['name', 'note', 'platform', 'vendorName'], keyword));
   if (keyword && !tools.length) return '';
   return `
     <div class="material-group" data-group="${group.id}">
@@ -442,13 +444,14 @@ function renderToolGroup(group, keyword) {
       </div>
       <div class="material-table ${editMode ? 'is-editing' : ''}">
         <div class="material-row material-row-head material-row-tools">
-          <div>名稱</div><div>數量</div><div>購買平台</div><div>廠商</div><div>時間</div>${editMode ? '<div></div>' : ''}
+          <div>名稱</div><div>說明</div><div>數量</div><div>購買平台</div><div>廠商</div><div>時間</div>${editMode ? '<div></div>' : ''}
         </div>
         ${tools
           .map(
             (t) => `
           <div class="material-row material-row-tools" data-item="${t.id}">
             <div>${t.name}</div>
+            <div>${t.note || ''}</div>
             <div>${t.quantity ?? ''}</div>
             <div>${t.platform || ''}</div>
             <div>${renderVendorLink(t)}</div>
