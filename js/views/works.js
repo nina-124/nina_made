@@ -164,6 +164,7 @@ function openWorkModal({ categories, existing }, onSubmit) {
       <div class="modal-header"><span>${existing ? '編輯作品' : '新增作品'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
         <label>名稱 <input type="text" name="name" placeholder="請輸入名稱" value="${existing?.name || ''}"></label>
+        <label>作品敘述 <textarea name="description" placeholder="請輸入作品敘述（選填）" rows="3">${existing?.description || ''}</textarea></label>
         <label>封面照片（${existing ? '不選則維持原圖' : '選填'}） <input type="file" name="cover" accept="image/*"></label>
         ${
           existing?.cover
@@ -248,6 +249,7 @@ function openWorkModal({ categories, existing }, onSubmit) {
   overlay.querySelector('[data-submit]').addEventListener('click', async () => {
     const name = overlay.querySelector('input[name="name"]').value.trim();
     if (!name) return;
+    const description = overlay.querySelector('textarea[name="description"]').value.trim();
     const categoryIds = Array.from(overlay.querySelectorAll('input[type="checkbox"]:checked')).map(
       (el) => el.value
     );
@@ -258,6 +260,7 @@ function openWorkModal({ categories, existing }, onSubmit) {
     const removeCover = overlay.querySelector('input[name="removeCover"]')?.checked || false;
     onSubmit({
       name,
+      description,
       categoryIds,
       coverPending,
       removeCover,
@@ -311,6 +314,7 @@ function openImageLightbox(work) {
         ${photos.length > 1 ? `<button type="button" class="icon-btn" data-next>&#8250;</button>` : ''}
       </div>
       ${photos.length > 1 ? `<div style="text-align:center; padding-bottom:14px; color:var(--text-grey); font-size:13px;" data-counter>1 / ${photos.length}</div>` : ''}
+      ${work.description ? `<div style="padding:0 20px 20px; white-space:pre-wrap; color:var(--text-grey); font-size:14px; line-height:1.6;">${work.description}</div>` : ''}
     </div>
   `;
   document.body.appendChild(overlay);
@@ -384,8 +388,9 @@ function renderGallery(container, data, filterCategoryId, ctx) {
       const work = cache.works.find((w) => w.id === el.dataset.edit);
       openWorkModal(
         { categories: cache.categories, existing: work },
-        ({ name, categoryIds, coverPending, removeCover, photos, newPhotos }) => {
+        ({ name, description, categoryIds, coverPending, removeCover, photos, newPhotos }) => {
           work.name = name;
+          work.description = description;
           work.categoryIds = categoryIds;
           if (removeCover) {
             work.cover = null;
@@ -406,8 +411,8 @@ function renderGallery(container, data, filterCategoryId, ctx) {
     addCard.addEventListener('click', () => {
       openWorkModal(
         { categories: cache.categories, existing: null },
-        ({ name, categoryIds, coverPending, newPhotos }) => {
-          const work = { id: slugify(name), name, categoryIds };
+        ({ name, description, categoryIds, coverPending, newPhotos }) => {
+          const work = { id: slugify(name), name, description, categoryIds };
           if (coverPending) work.coverPending = coverPending;
           if (newPhotos.length) work.photosPending = newPhotos;
           cache.works.push(work);
