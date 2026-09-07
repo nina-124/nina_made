@@ -11,6 +11,42 @@
     {
       "id": "藝人-rq0s",
       "name": "藝人"
+    },
+    {
+      "id": "韓國ip-u1u4",
+      "name": "韓國IP"
+    },
+    {
+      "id": "日本ip-ubxt",
+      "name": "日本IP"
+    },
+    {
+      "id": "大陸ip-un24",
+      "name": "大陸IP"
+    },
+    {
+      "id": "哈利波特-60uq",
+      "name": "哈利波特"
+    },
+    {
+      "id": "韓團-7avz",
+      "name": "韓團"
+    },
+    {
+      "id": "環球影視-hozh",
+      "name": "環球影視"
+    },
+    {
+      "id": "宮崎駿-nauc",
+      "name": "宮崎駿"
+    },
+    {
+      "id": "節慶-ocny",
+      "name": "節慶"
+    },
+    {
+      "id": "任天堂-sdvr",
+      "name": "任天堂"
     }
   ],
   "works": [
@@ -25,28 +61,254 @@
       "description": "長寬"
     },
     {
-      "id": "庫洛魔法使-小可-qjhg",
-      "name": "庫洛魔法使-小可",
+      "id": "藝人-王一博-rl1m",
+      "name": "王一博(抱魚)",
+      "description": "",
+      "categoryIds": [
+        "藝人-rq0s"
+      ],
+      "photos": [
+        "assets/img/works/藝人-王一博-rl1m-mtrc25glvzp9.jpg",
+        "assets/img/works/藝人-王一博-rl1m-mtrc26p9knuy.jpg"
+      ],
+      "cover": "assets/img/works/藝人-王一博-rl1m.jpg"
+    },
+    {
+      "id": "韓國ip-線條小狗-tvfg",
+      "name": "線條小狗",
+      "description": "",
+      "categoryIds": [
+        "韓國ip-u1u4"
+      ],
+      "photos": [
+        "assets/img/works/韓國ip-線條小狗-tvfg-mtrc29hiklj0.jpg"
+      ],
+      "cover": "assets/img/works/韓國ip-線條小狗-tvfg.jpg"
+    },
+    {
+      "id": "哈利波特-9又4分之3-5szk",
+      "name": "9又4分之3",
+      "description": "",
+      "categoryIds": [
+        "哈利波特-60uq"
+      ],
+      "photos": [
+        "assets/img/works/哈利波特-9又4分之3-5szk-mtrc2c6dpggq.jpg"
+      ],
+      "cover": "assets/img/works/哈利波特-9又4分之3-5szk.jpg"
+    },
+    {
+      "id": "韓團-baby-monster-手燈-75ju",
+      "name": "Baby Monster 手燈",
+      "description": "",
+      "categoryIds": [
+        "韓團-7avz"
+      ],
+      "photos": [
+        "assets/img/works/韓團-baby-monster-手燈-75ju-mtrc2epfx6q0.jpg"
+      ],
+      "cover": "assets/img/works/韓團-baby-monster-手燈-75ju.jpg"
+    },
+    {
+      "id": "韓團-black-pink-手燈-7zfs",
+      "name": "Black Pink 手燈",
+      "description": "",
+      "categoryIds": [
+        "韓團-7avz"
+      ],
+      "photos": [
+        "assets/img/works/韓團-black-pink-手燈-7zfs-mtrc2hx4ff5m.jpg"
+      ],
+      "cover": "assets/img/works/韓團-black-pink-手燈-7zfs.jpg"
+    },
+    {
+      "id": "韓團-gd-手燈-cn2e",
+      "name": "GD 手燈",
+      "description": "",
+      "categoryIds": [
+        "韓團-7avz"
+      ],
+      "photos": [
+        "assets/img/works/韓團-gd-手燈-cn2e-mtrc2kdfp3lp.jpg"
+      ],
+      "cover": "assets/img/works/韓團-gd-手燈-cn2e.jpg"
+    },
+    {
+      "id": "韓團-super-junior-手燈-gtpo",
+      "name": "Super Junior 手燈",
+      "description": "",
+      "categoryIds": [
+        "韓團-7avz"
+      ],
+      "photos": [],
+      "cover": "assets/img/works/韓團-super-junior-手燈-gtpo.jpg"
+    },
+    {
+      "id": "神偷奶爸-小小兵-i4u0",
+      "name": "神偷奶爸-小小兵",
+      "description": "",
+      "categoryIds": [
+        "環球影視-hozh"
+      ],
+      "cover": "assets/img/works/神偷奶爸-小小兵-i4u0.jpg"
+    },
+    {
+      "id": "神奇寶貝-小火龍-iqwl",
+      "name": "神奇寶貝-小火龍",
+      "description": "",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "cover": "assets/img/works/神奇寶貝-小火龍-iqwl.jpg"
+    },
+    {
+      "id": "小王子-jlv8",
+      "name": "小王子",
+      "description": "",
+      "categoryIds": [],
+      "cover": "assets/img/works/小王子-jlv8.jpg"
+    },
+    {
+      "id": "藝人-五月天-冰棒-k6n2",
+      "name": "五月天(冰棒)",
+      "description": "",
+      "categoryIds": [
+        "藝人-rq0s"
+      ],
+      "photos": [],
+      "cover": "assets/img/works/藝人-五月天-冰棒-k6n2.jpg"
+    },
+    {
+      "id": "藝人-王一博-knpq",
+      "name": "王一博",
+      "description": "",
+      "categoryIds": [
+        "藝人-rq0s"
+      ],
+      "photos": [],
+      "cover": "assets/img/works/藝人-王一博-knpq.jpg"
+    },
+    {
+      "id": "神奇寶貝-皮卡丘-l2dq",
+      "name": "神奇寶貝-皮卡丘",
+      "description": "",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "cover": "assets/img/works/神奇寶貝-皮卡丘-l2dq.jpg"
+    },
+    {
+      "id": "哈利波特-金探子-lfzn",
+      "name": "哈利波特-金探子",
+      "description": "",
+      "categoryIds": [
+        "哈利波特-60uq"
+      ],
+      "cover": "assets/img/works/哈利波特-金探子-lfzn.jpg"
+    },
+    {
+      "id": "大陸ip-桃園深處有人家-m305",
+      "name": "桃園深處有人家",
+      "description": "",
+      "categoryIds": [
+        "大陸ip-un24"
+      ],
+      "photos": [],
+      "cover": "assets/img/works/大陸ip-桃園深處有人家-m305.jpg"
+    },
+    {
+      "id": "神隱少女-煤炭精靈-nsg3",
+      "name": "神隱少女-煤炭精靈",
+      "description": "",
+      "categoryIds": [
+        "宮崎駿-nauc"
+      ],
+      "cover": "assets/img/works/神隱少女-煤炭精靈-nsg3.jpg"
+    },
+    {
+      "id": "福袋-ooe1",
+      "name": "福袋",
+      "description": "",
+      "categoryIds": [
+        "節慶-ocny"
+      ],
+      "cover": "assets/img/works/福袋-ooe1.jpg"
+    },
+    {
+      "id": "神奇寶貝-精靈球-p2cb",
+      "name": "神奇寶貝-精靈球",
+      "description": "",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "cover": "assets/img/works/神奇寶貝-精靈球-p2cb.jpg"
+    },
+    {
+      "id": "神奇寶貝-噴火龍-pehk",
+      "name": "神奇寶貝-噴火龍",
       "description": "",
       "categoryIds": [
         "動漫-knre"
       ],
       "photos": [
-        "assets/img/works/庫洛魔法使-小可-qjhg-mtrarrg261ym.jpg",
-        "assets/img/works/庫洛魔法使-小可-qjhg-mtrarszg57w5.jpg",
-        "assets/img/works/庫洛魔法使-小可-qjhg-mtraruce3he3.jpg"
-      ]
+        "assets/img/works/神奇寶貝-噴火龍-pehk-mtrc349n8x9i.jpg"
+      ],
+      "cover": "assets/img/works/神奇寶貝-噴火龍-pehk.jpg"
     },
     {
-      "id": "藝人-王一博-rl1m",
-      "name": "藝人-王一博",
+      "id": "多多龍-多多龍-pzhi",
+      "name": "多多龍-多多龍",
       "description": "",
-      "categoryIds": [],
-      "photos": [
-        "assets/img/works/藝人-王一博-rl1m-mtrarvoywqr5.jpg",
-        "assets/img/works/藝人-王一博-rl1m-mtrarx9z7148.jpg",
-        "assets/img/works/藝人-王一博-rl1m-mtraryustk03.jpg"
-      ]
+      "categoryIds": [
+        "宮崎駿-nauc"
+      ],
+      "cover": "assets/img/works/多多龍-多多龍-pzhi.jpg"
+    },
+    {
+      "id": "天官賜福-謝憐-qfzf",
+      "name": "天官賜福-謝憐",
+      "description": "",
+      "categoryIds": [
+        "大陸ip-un24"
+      ],
+      "cover": "assets/img/works/天官賜福-謝憐-qfzf.jpg"
+    },
+    {
+      "id": "蠟筆小新-野原新之助-蜜蜂-r6x0",
+      "name": "蠟筆小新-野原新之助(蜜蜂)",
+      "description": "",
+      "categoryIds": [
+        "動漫-knre"
+      ],
+      "cover": "assets/img/works/蠟筆小新-野原新之助-蜜蜂-r6x0.jpg"
+    },
+    {
+      "id": "任天堂-皮克敏-紫-s5dz",
+      "name": "皮克敏(紫)",
+      "description": "",
+      "categoryIds": [
+        "任天堂-sdvr"
+      ],
+      "photos": [],
+      "cover": "assets/img/works/任天堂-皮克敏-紫-s5dz.jpg"
+    },
+    {
+      "id": "dinotaeng-quokka-漢堡-vt3s",
+      "name": "DINOTAENG-Quokka(漢堡)",
+      "description": "",
+      "categoryIds": [
+        "韓國ip-u1u4"
+      ],
+      "cover": "assets/img/works/dinotaeng-quokka-漢堡-vt3s.jpg"
+    },
+    {
+      "id": "皮克敏-紅-黃-藍-白-19wl",
+      "name": "皮克敏(紅/黃/藍/白)",
+      "description": "",
+      "categoryIds": [
+        "任天堂-sdvr"
+      ],
+      "cover": "assets/img/works/皮克敏-紅-黃-藍-白-19wl.jpg"
     }
   ]
 }
