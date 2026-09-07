@@ -370,14 +370,19 @@ function renderGallery(container, data, filterCategoryId, ctx) {
 
   const searchInput = container.querySelector('#works-search');
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
+    const applySearch = () => {
       searchKeyword = searchInput.value;
       const caret = searchInput.selectionStart;
       renderGallery(container, data, filterCategoryId, ctx);
       const el = container.querySelector('#works-search');
       el.focus();
       el.setSelectionRange(caret, caret);
+    };
+    searchInput.addEventListener('input', (e) => {
+      if (e.isComposing) return; // 避免中/日文輸入法組字被重繪打斷
+      applySearch();
     });
+    searchInput.addEventListener('compositionend', applySearch);
   }
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
