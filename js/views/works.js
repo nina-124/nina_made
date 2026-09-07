@@ -6,6 +6,7 @@ const DATA_PATH = 'data/works-public.json';
 let cache = null;
 let sha = null;
 let editMode = false;
+let searchKeyword = '';
 const localPreviewCache = new Map();
 
 function emptyData() {
@@ -342,14 +343,16 @@ function openImageLightbox(work) {
 
 function renderGallery(container, data, filterCategoryId, ctx) {
   const category = filterCategoryId ? data.categories.find((c) => c.id === filterCategoryId) : null;
-  const works = filterCategoryId
+  let works = filterCategoryId
     ? data.works.filter((w) => (w.categoryIds || []).includes(filterCategoryId))
     : data.works;
+  const kw = searchKeyword.trim().toLowerCase();
+  if (kw) works = works.filter((w) => w.name.toLowerCase().includes(kw));
 
   container.innerHTML = `
     <div class="topbar">
       <div class="breadcrumb"><span>作品集${category ? ` | ${category.name}` : ''}</span></div>
-      <div class="search-box">${ICONS.search}<input placeholder="搜尋"></div>
+      <div class="search-box">${ICONS.search}<input placeholder="搜尋作品名稱" id="works-search" value="${searchKeyword}"></div>
       ${
         ctx.authed
           ? `<button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
@@ -362,8 +365,20 @@ function renderGallery(container, data, filterCategoryId, ctx) {
       ${works.map((w) => renderCard(w, ctx)).join('')}
       ${editMode ? `<div class="card card-add" id="add-card">&#65291;</div>` : ''}
     </div>
-    ${!works.length && !editMode ? `<div class="empty-hint">目前還沒有作品</div>` : ''}
+    ${!works.length && !editMode ? `<div class="empty-hint">${kw ? '找不到符合的作品' : '目前還沒有作品'}</div>` : ''}
   `;
+
+  const searchInput = container.querySelector('#works-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchKeyword = searchInput.value;
+      const caret = searchInput.selectionStart;
+      renderGallery(container, data, filterCategoryId, ctx);
+      const el = container.querySelector('#works-search');
+      el.focus();
+      el.setSelectionRange(caret, caret);
+    });
+  }
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
