@@ -1,5 +1,6 @@
 import { PUBLIC_REPO, getJsonFile, putJsonFile, uploadImageFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
+import { reorderById, bindDragReorder } from '../drag-reorder.js';
 
 const DATA_PATH = 'data/works-public.json';
 
@@ -281,7 +282,8 @@ function renderCard(work, ctx) {
     <div class="card" data-id="${work.id}">
       ${
         editMode
-          ? `<button class="del-btn" data-del="${work.id}" style="right:-8px;">&#10005;</button>
+          ? `<span class="drag-handle">${ICONS.grip}</span>
+             <button class="del-btn" data-del="${work.id}" style="right:-8px;">&#10005;</button>
              <button class="del-btn" data-edit="${work.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>`
           : ''
       }
@@ -394,6 +396,17 @@ function renderGallery(container, data, filterCategoryId, ctx) {
     });
   });
 
+  if (editMode) {
+    bindDragReorder(
+      Array.from(container.querySelectorAll('.card[data-id]')),
+      (el) => el.dataset.id,
+      (draggedId, targetId) => {
+        reorderById(cache.works, draggedId, targetId);
+        renderGallery(container, cache, filterCategoryId, ctx);
+      }
+    );
+  }
+
   container.querySelectorAll('[data-del]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -482,6 +495,10 @@ export function deleteCategory(id) {
     w.categoryIds = (w.categoryIds || []).filter((cid) => cid !== id);
   });
   notifyUpdated();
+}
+
+export function reorderCategories(draggedId, targetId) {
+  if (reorderById(cache.categories, draggedId, targetId)) notifyUpdated();
 }
 
 export async function renderWorksView(container, path, ctx) {

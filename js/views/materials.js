@@ -1,5 +1,6 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
+import { reorderById, bindDragReorder } from '../drag-reorder.js';
 
 const DATA_PATH = 'data/materials.json';
 
@@ -275,6 +276,7 @@ function renderYarnGroup(group, keyword) {
   return `
     <div class="material-group" data-group="${group.id}">
       <div class="material-group-head">
+        ${editMode ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
         <span class="material-group-tag">${group.name}</span>
         ${
           editMode
@@ -309,6 +311,7 @@ function renderYarnGroup(group, keyword) {
             ${
               editMode
                 ? `<div class="material-row-actions">
+                     <span class="drag-handle">${ICONS.grip}</span>
                      <button class="del-btn" data-edit-item="${it.id}" data-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
                      <button class="del-btn" data-del-item="${it.id}" data-group="${group.id}" style="position:static;">&#10005;</button>
                    </div>`
@@ -426,6 +429,29 @@ async function renderYarnPage(container, ctx) {
         draw();
       });
     });
+
+    if (editMode) {
+      bindDragReorder(
+        Array.from(container.querySelectorAll('.material-group[data-group]')),
+        (el) => el.dataset.group,
+        (draggedId, targetId) => {
+          reorderById(cache.yarnGroups, draggedId, targetId);
+          draw();
+        }
+      );
+      container.querySelectorAll('.material-group[data-group]').forEach((groupEl) => {
+        const group = cache.yarnGroups.find((g) => g.id === groupEl.dataset.group);
+        if (!group) return;
+        bindDragReorder(
+          Array.from(groupEl.querySelectorAll('.material-row[data-item]')),
+          (el) => el.dataset.item,
+          (draggedId, targetId) => {
+            reorderById(group.items, draggedId, targetId);
+            draw();
+          }
+        );
+      });
+    }
   };
 
   draw();
@@ -438,6 +464,7 @@ function renderToolGroup(group, keyword) {
   return `
     <div class="material-group" data-group="${group.id}">
       <div class="material-group-head">
+        ${editMode ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
         <span class="material-group-tag">${group.name}</span>
         ${
           editMode
@@ -464,6 +491,7 @@ function renderToolGroup(group, keyword) {
             ${
               editMode
                 ? `<div class="material-row-actions">
+                     <span class="drag-handle">${ICONS.grip}</span>
                      <button class="del-btn" data-edit-item="${t.id}" data-group="${group.id}" style="position:static;">${ICONS.pencil}</button>
                      <button class="del-btn" data-del-item="${t.id}" data-group="${group.id}" style="position:static;">&#10005;</button>
                    </div>`
@@ -581,6 +609,29 @@ async function renderToolsPage(container, ctx) {
         draw();
       });
     });
+
+    if (editMode) {
+      bindDragReorder(
+        Array.from(container.querySelectorAll('.material-group[data-group]')),
+        (el) => el.dataset.group,
+        (draggedId, targetId) => {
+          reorderById(cache.toolGroups, draggedId, targetId);
+          draw();
+        }
+      );
+      container.querySelectorAll('.material-group[data-group]').forEach((groupEl) => {
+        const group = cache.toolGroups.find((g) => g.id === groupEl.dataset.group);
+        if (!group) return;
+        bindDragReorder(
+          Array.from(groupEl.querySelectorAll('.material-row[data-item]')),
+          (el) => el.dataset.item,
+          (draggedId, targetId) => {
+            reorderById(group.items, draggedId, targetId);
+            draw();
+          }
+        );
+      });
+    }
   };
 
   draw();

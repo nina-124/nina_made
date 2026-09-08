@@ -7,6 +7,7 @@ import {
   isEditMode as isWorksEditMode,
   addCategory as addWorksCategory,
   deleteCategory as deleteWorksCategory,
+  reorderCategories as reorderWorksCategories,
   openCategoryModal as openWorksCategoryModal,
 } from './views/works.js';
 import {
@@ -15,9 +16,11 @@ import {
   isEditMode as isDiagramsEditMode,
   addCategoryAt as addDiagramsCategoryAt,
   deleteCategoryAt as deleteDiagramsCategoryAt,
+  reorderCategoriesAt as reorderDiagramsCategoriesAt,
   openCategoryModal as openDiagramsCategoryModal,
 } from './views/diagrams.js';
 import { renderMaterialsView } from './views/materials.js';
+import { bindDragReorder } from './drag-reorder.js';
 
 const auth = getAuth();
 const ctx = {
@@ -54,15 +57,16 @@ async function renderWorksSubnav(activeCategoryId) {
     ${categories
       .map(
         (c) => `
-      <div class="nav-subitem ${c.id === activeCategoryId ? 'active' : ''}" data-cat="${c.id}" style="display:flex; align-items:center;">
-        <span style="flex:1; cursor:pointer;">${c.name}</span>
+      <div class="nav-subitem ${c.id === activeCategoryId ? 'active' : ''}" data-cat="${c.id}" style="display:flex; align-items:center; gap:6px;">
+        ${editing ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
+        <span class="nav-subitem-name" style="flex:1; cursor:pointer;">${c.name}</span>
         ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
       </div>`
       )
       .join('')}
     ${editing ? `<div class="nav-add" id="add-works-cat">&#65291; 新增分類</div>` : ''}
   `;
-  subnav.querySelectorAll('[data-cat] span').forEach((el) => {
+  subnav.querySelectorAll('[data-cat] .nav-subitem-name').forEach((el) => {
     el.addEventListener('click', () => navigate(['works', 'cat', el.parentElement.dataset.cat]));
   });
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
@@ -71,6 +75,13 @@ async function renderWorksSubnav(activeCategoryId) {
       deleteWorksCategory(el.dataset.delCat);
     });
   });
+  if (editing) {
+    bindDragReorder(
+      Array.from(subnav.querySelectorAll('[data-cat]')),
+      (el) => el.dataset.cat,
+      (draggedId, targetId) => reorderWorksCategories(draggedId, targetId)
+    );
+  }
   const addCat = subnav.querySelector('#add-works-cat');
   if (addCat) {
     addCat.addEventListener('click', () => {
@@ -88,15 +99,16 @@ async function renderDiagramsSubnav() {
     ${categories
       .map(
         (c) => `
-      <div class="nav-subitem" data-cat="${c.id}" style="display:flex; align-items:center;">
-        <span style="flex:1; cursor:pointer;">${c.name}</span>
+      <div class="nav-subitem" data-cat="${c.id}" style="display:flex; align-items:center; gap:6px;">
+        ${editing ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
+        <span class="nav-subitem-name" style="flex:1; cursor:pointer;">${c.name}</span>
         ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
       </div>`
       )
       .join('')}
     ${editing ? `<div class="nav-add" id="add-diagrams-cat">&#65291; 新增分類</div>` : ''}
   `;
-  subnav.querySelectorAll('[data-cat] span').forEach((el) => {
+  subnav.querySelectorAll('[data-cat] .nav-subitem-name').forEach((el) => {
     el.addEventListener('click', () => navigate(['diagrams', el.parentElement.dataset.cat]));
   });
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
@@ -106,6 +118,16 @@ async function renderDiagramsSubnav() {
       renderDiagramsSubnav();
     });
   });
+  if (editing) {
+    bindDragReorder(
+      Array.from(subnav.querySelectorAll('[data-cat]')),
+      (el) => el.dataset.cat,
+      (draggedId, targetId) => {
+        reorderDiagramsCategoriesAt([], draggedId, targetId);
+        renderDiagramsSubnav();
+      }
+    );
+  }
   const addCat = subnav.querySelector('#add-diagrams-cat');
   if (addCat) {
     addCat.addEventListener('click', () => {

@@ -1,5 +1,6 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile, uploadImageFile, getRawFileBase64 } from '../github-api.js';
 import { ICONS } from '../icons.js';
+import { reorderById, bindDragReorder } from '../drag-reorder.js';
 
 const DATA_PATH = 'data/diagrams.json';
 
@@ -171,6 +172,14 @@ export function deleteCategoryAt(path, id) {
   notifyUpdated();
 }
 
+export function reorderCategoriesAt(path, draggedId, targetId) {
+  let { node } = findNode(path);
+  if (node.type === 'pattern') {
+    node = findNode(path.slice(0, -1)).node;
+  }
+  if (reorderById(node.items || [], draggedId, targetId)) notifyUpdated();
+}
+
 export function openCategoryModal(onSubmit, existing) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -287,7 +296,8 @@ async function renderTree(container, node, path, trail, ctx) {
         <div class="card" data-id="${item.id}">
           ${
             editMode
-              ? `<button class="del-btn" data-del="${item.id}" style="right:-8px;">&#10005;</button>
+              ? `<span class="drag-handle">${ICONS.grip}</span>
+                 <button class="del-btn" data-del="${item.id}" style="right:-8px;">&#10005;</button>
                  ${
                    item.type === 'category'
                      ? `<button class="del-btn" data-edit-cat="${item.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>`
@@ -318,10 +328,21 @@ async function renderTree(container, node, path, trail, ctx) {
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('[data-del], [data-edit-cat]')) return;
+      if (e.target.closest('[data-del], [data-edit-cat], .drag-handle')) return;
       ctx.navigate(['diagrams', ...path, el.dataset.id]);
     });
   });
+
+  if (editMode) {
+    bindDragReorder(
+      Array.from(container.querySelectorAll('.card[data-id]')),
+      (el) => el.dataset.id,
+      (draggedId, targetId) => {
+        reorderById(node.items, draggedId, targetId);
+        renderTree(container, node, path, trail, ctx);
+      }
+    );
+  }
 
   container.querySelectorAll('[data-del]').forEach((el) => {
     el.addEventListener('click', (e) => {
@@ -559,7 +580,8 @@ function renderTableSection(table, node) {
       <div class="diagram-table-head">
         ${
           editMode
-            ? `<input type="text" class="part-name" value="${table.part}" data-field="part">
+            ? `<span class="drag-handle">${ICONS.grip}</span>
+               <input type="text" class="part-name" value="${table.part}" data-field="part">
                <button class="del-btn" data-del-table style="position:static;">&#10005;</button>`
             : `<h3>${table.part}</h3>`
         }
@@ -785,6 +807,17 @@ async function renderPatternEditor(container, node, trail, ctx) {
   };
   node.tables.forEach((t) => bindTableSection(container, t, node, onTableStructureChange));
   await bindRowAttachments(container, node, ctx);
+
+  if (editMode) {
+    bindDragReorder(
+      Array.from(container.querySelectorAll('.diagram-table[data-table]')),
+      (el) => el.dataset.table,
+      (draggedId, targetId) => {
+        reorderById(node.tables, draggedId, targetId);
+        rerender();
+      }
+    );
+  }
 
   const addTableBtn = container.querySelector('#add-table');
   if (addTableBtn) {
