@@ -43,6 +43,12 @@ export function bindDragReorder(itemEls, getId, onDrop) {
       el.draggable = false;
     });
     item.addEventListener('dragstart', (e) => {
+      // 部分瀏覽器在輸入框/可編輯文字裡選字拖曳時，仍會觸發原生的文字拖曳事件並冒泡上來，
+      // 這種情況要擋掉，否則選字會被誤判成「拖曳整個項目排序」
+      if (e.target.closest(NON_DRAG_SELECTOR)) {
+        e.preventDefault();
+        return;
+      }
       draggedId = getId(item);
       item.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
