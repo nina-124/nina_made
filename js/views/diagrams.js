@@ -594,9 +594,11 @@ function renderTableSection(table, node) {
         ${
           editMode
             ? `<span class="drag-handle">${ICONS.grip}</span>
-               <input type="text" class="part-name" value="${table.part}" data-field="part">
+               <input type="text" class="part-name" value="${table.part}" data-field="part" placeholder="標題">
+               <input type="text" class="part-note" value="${table.note || ''}" data-field="note" placeholder="說明">
                <button class="del-btn" data-del-table style="position:static;">&#10005;</button>`
-            : `<h3>${table.part}</h3>`
+            : `<h3>${table.part}</h3>
+               ${table.note ? `<span class="part-note-text">${table.note}</span>` : ''}`
         }
       </div>
       <div class="diagram-grid ${editMode ? 'is-editing' : ''}">
@@ -637,6 +639,13 @@ function bindTableSection(container, table, node, onStructureChange) {
   if (partInput) {
     partInput.addEventListener('input', () => {
       table.part = partInput.value;
+    });
+  }
+
+  const partNoteInput = el.querySelector('input.part-note');
+  if (partNoteInput) {
+    partNoteInput.addEventListener('input', () => {
+      table.note = partNoteInput.value;
     });
   }
 

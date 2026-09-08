@@ -566,6 +566,7 @@ a { color: inherit; }
   margin-bottom: 10px;
 }
 .diagram-table-head h3 { margin: 0; font-size: 20pt; }
+.diagram-table-head .part-note-text { color: var(--text-grey); font-size: 14px; }
 .diagram-table-head .part-name {
   flex: 1;
   border-radius: 8px;
@@ -573,6 +574,13 @@ a { color: inherit; }
   padding: 6px 10px;
   font-weight: 700;
   font-size: 20pt;
+}
+.diagram-table-head .part-note {
+  flex: 2;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  padding: 6px 10px;
+  font-size: 14px;
 }
 
 .diagram-grid-row {
@@ -725,6 +733,7 @@ a { color: inherit; }
   .diagram-table { padding: 6px; break-inside: auto; page-break-inside: auto; }
   .diagram-table-head { margin-bottom: 4px; }
   .diagram-table-head h3 { font-size: 12pt; }
+  .diagram-table-head .part-note-text { font-size: 9pt; }
   .diagram-grid-row { grid-template-columns: 2.2em 3fr 3.5em 1fr; gap: 8px; padding: 3px 0; break-inside: avoid; page-break-inside: avoid; }
   .diagram-grid-row .cell { font-size: 9.5pt; }
   .attach-cell { grid-column: auto; }
