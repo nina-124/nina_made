@@ -89,7 +89,11 @@ a { color: inherit; }
   align-items: center;
   gap: 10px;
   box-shadow: inset -18px 0 30px -28px rgba(54, 75, 53, 0.45);
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  align-self: flex-start;
 }
 .sidebar::after {
   content: '✨';
@@ -303,6 +307,19 @@ a { color: inherit; }
   position: absolute;
   top: -8px;
   right: -8px;
+}
+.card .drag-handle {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-add {
@@ -589,6 +606,11 @@ a { color: inherit; }
 /* --- 線材&工具 --- */
 .material-groups { display: flex; flex-direction: column; gap: 24px; }
 
+/* --- 拖曳排序（編輯模式共用） --- */
+.drag-handle { cursor: grab; color: var(--text-grey); flex-shrink: 0; touch-action: none; }
+.drag-handle:active { cursor: grabbing; }
+.dragging { opacity: 0.4; }
+
 .material-group {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -649,7 +671,7 @@ a { color: inherit; }
 
 @media (max-width: 720px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+  .sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; height: auto; }
   .nav-section { flex-direction: row; }
 }
 
