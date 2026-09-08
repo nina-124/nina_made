@@ -530,6 +530,10 @@ a { color: inherit; }
   border-radius: 14px;
   padding: 14px;
 }
+.diagram-table.dragging .diagram-grid,
+.diagram-table.dragging [data-add-row] {
+  display: none;
+}
 .diagram-table-head {
   display: flex;
   align-items: center;
@@ -607,8 +611,9 @@ a { color: inherit; }
 .material-groups { display: flex; flex-direction: column; gap: 24px; }
 
 /* --- 拖曳排序（編輯模式共用） --- */
-.drag-handle { cursor: grab; color: var(--text-grey); flex-shrink: 0; touch-action: none; }
-.drag-handle:active { cursor: grabbing; }
+.drag-handle { cursor: grab; color: var(--text-grey); flex-shrink: 0; touch-action: none; pointer-events: none; }
+.is-draggable { cursor: grab; touch-action: none; }
+.is-draggable:active { cursor: grabbing; }
 .dragging { opacity: 0.4; }
 
 .material-group {
