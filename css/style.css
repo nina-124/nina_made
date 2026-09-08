@@ -449,7 +449,9 @@ a { color: inherit; }
 .diagram-cover { flex: 1; min-width: 0; text-align: center; }
 .diagram-cover img {
   width: 100%;
-  border-radius: var(--blob-radius);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 16px;
   display: block;
   box-shadow: 0 12px 28px rgba(54, 75, 53, 0.2);
 }
@@ -472,14 +474,37 @@ a { color: inherit; }
   margin: 16px 0 20px;
 }
 
+.diagram-toolbar {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+}
+
+.diagram-toc {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+  margin: 0 0 20px;
+  font-weight: 700;
+  color: var(--green-700);
+}
+.diagram-toolbar .diagram-toc { margin-bottom: 0; }
+.diagram-toc .toc-item { cursor: pointer; }
+.diagram-toc .toc-item:hover { text-decoration: underline; }
+.diagram-toc .sep { color: var(--text-grey); font-weight: 400; }
+
 .color-palette {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  position: sticky;
-  top: 8px;
-  z-index: 20;
   background: #fff;
   padding: 8px 12px;
   border-radius: 999px;
@@ -705,5 +730,5 @@ a { color: inherit; }
   .attach-cell { grid-column: auto; }
   .row-attach { break-inside: avoid; }
   .row-attach .block-text { font-size: 8.5pt; }
-  .del-btn, .card-add, .modal-overlay, .color-palette { display: none !important; }
+  .del-btn, .card-add, .modal-overlay, .color-palette, .diagram-toc { display: none !important; }
 }

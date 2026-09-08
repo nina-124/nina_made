@@ -460,6 +460,19 @@ function renderColorPalette() {
   `;
 }
 
+function renderTocNav(tables) {
+  return `
+    <div class="diagram-toc">
+      ${tables
+        .map(
+          (t, i) =>
+            `${i > 0 ? '<span class="sep">|</span>' : ''}<span class="toc-item" data-jump="${t.id}">${t.part}</span>`
+        )
+        .join('')}
+    </div>
+  `;
+}
+
 const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 function closestCellEdit(node) {
@@ -743,7 +756,16 @@ async function renderPatternEditor(container, node, trail, ctx) {
           }
         </div>
       </div>
-      ${editMode ? renderColorPalette() : ''}
+      ${
+        editMode
+          ? `<div class="diagram-toolbar">
+              ${renderColorPalette()}
+              ${node.tables.length > 1 ? renderTocNav(node.tables) : ''}
+            </div>`
+          : node.tables.length > 1
+            ? renderTocNav(node.tables)
+            : ''
+      }
       <div class="diagram-tables">
         ${node.tables.map((t) => renderTableSection(t, node)).join('')}
         ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
@@ -753,6 +775,15 @@ async function renderPatternEditor(container, node, trail, ctx) {
 
   bindCrumb(container, ctx);
   if (editMode) bindColorPalette(container);
+
+  container.querySelectorAll('[data-jump]').forEach((el) => {
+    el.addEventListener('click', () => {
+      container.querySelector(`.diagram-table[data-table="${el.dataset.jump}"]`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  });
 
   const printBtn = container.querySelector('#print-btn');
   if (printBtn) {
@@ -812,6 +843,14 @@ async function renderPatternEditor(container, node, trail, ctx) {
     bindDragReorder(
       Array.from(container.querySelectorAll('.diagram-table[data-table]')),
       (el) => el.dataset.table,
+      (draggedId, targetId) => {
+        reorderById(node.tables, draggedId, targetId);
+        rerender();
+      }
+    );
+    bindDragReorder(
+      Array.from(container.querySelectorAll('.toc-item[data-jump]')),
+      (el) => el.dataset.jump,
       (draggedId, targetId) => {
         reorderById(node.tables, draggedId, targetId);
         rerender();
