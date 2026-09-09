@@ -195,6 +195,7 @@ a { color: inherit; }
 .topbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -240,6 +241,7 @@ a { color: inherit; }
 .search-box {
   flex: 1;
   max-width: 320px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -250,7 +252,7 @@ a { color: inherit; }
   color: var(--text-grey);
   box-shadow: 0 4px 10px rgba(44, 62, 45, 0.08);
 }
-.search-box input { border: none; outline: none; flex: 1; font-family: inherit; font-size: 14px; color: var(--text-dark); }
+.search-box input { border: none; outline: none; flex: 1; min-width: 0; font-family: inherit; font-size: 14px; color: var(--text-dark); }
 
 /* --- card grid --- */
 .card-grid {
@@ -659,6 +661,7 @@ a { color: inherit; }
 .material-group-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -672,7 +675,7 @@ a { color: inherit; }
 }
 .material-group-head .link-btn { margin-left: auto; }
 
-.material-table { display: flex; flex-direction: column; }
+.material-table { display: flex; flex-direction: column; overflow-x: auto; }
 .material-row {
   display: grid;
   grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1fr;
@@ -682,10 +685,10 @@ a { color: inherit; }
   font-size: 14px;
 }
 .material-table.is-editing .material-row { grid-template-columns: 2fr 0.8fr 1fr 0.8fr 1fr 56px; }
-.material-row-tools { grid-template-columns: 1.5fr 1.5fr 0.8fr 1fr 0.8fr 1fr; }
-.material-table.is-editing .material-row-tools { grid-template-columns: 1.5fr 1.5fr 0.8fr 1fr 0.8fr 1fr 56px; }
-.material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr; font-size: 13px; }
-.material-table-yarn.is-editing .material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr 56px; }
+.material-row-tools { grid-template-columns: 1.5fr 1.5fr 0.8fr 1fr 0.8fr 1fr; min-width: 560px; }
+.material-table.is-editing .material-row-tools { grid-template-columns: 1.5fr 1.5fr 0.8fr 1fr 0.8fr 1fr 56px; min-width: 620px; }
+.material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr; font-size: 13px; min-width: 640px; }
+.material-table-yarn.is-editing .material-row-yarn { grid-template-columns: 1.5fr 0.6fr 0.8fr 0.9fr 0.9fr 0.6fr 0.9fr 56px; min-width: 700px; }
 .material-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .material-row a { color: var(--green-700); }
 .material-row-head {
