@@ -210,6 +210,20 @@ export function moveItemToTopCategory(fromPath, itemId, toCategoryId) {
   notifyUpdated();
 }
 
+// 把目前這一層裡的某個項目，搬到「同一層」的另一個分類資料夾底下（拖到畫面上的分類卡片）
+export function moveItemToCategory(path, itemId, toCategoryId) {
+  if (itemId === toCategoryId) return;
+  const { node } = findNode(path);
+  const idx = (node.items || []).findIndex((i) => i.id === itemId);
+  if (idx === -1) return;
+  const toCategory = (node.items || []).find((i) => i.id === toCategoryId && i.type === 'category');
+  if (!toCategory) return;
+  const [item] = node.items.splice(idx, 1);
+  toCategory.items = toCategory.items || [];
+  toCategory.items.push(item);
+  notifyUpdated();
+}
+
 export function openCategoryModal(onSubmit, existing) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -368,7 +382,13 @@ async function renderTree(container, node, path, trail, ctx) {
       Array.from(container.querySelectorAll('.card[data-id]')),
       (el) => el.dataset.id,
       (draggedId, targetId) => {
-        reorderById(node.items, draggedId, targetId);
+        // 拖到「分類資料夾」卡片上 = 搬進該分類；拖到一般卡片上 = 純粹排序
+        const targetItem = items.find((i) => i.id === targetId);
+        if (targetItem?.type === 'category') {
+          moveItemToCategory(path, draggedId, targetId);
+        } else {
+          reorderById(node.items, draggedId, targetId);
+        }
         renderTree(container, node, path, trail, ctx);
       },
       'application/x-diagram-item'
