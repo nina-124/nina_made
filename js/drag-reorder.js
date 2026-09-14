@@ -33,7 +33,8 @@ function ensureAutoScroll() {
 // itemEls：每一個可排序的項目元素，點擊項目本身（不含上述互動元素）即可拖曳
 // getId：從項目元素取得該項目的 id
 // onDrop(draggedId, targetId)：放開時呼叫，負責重新排序底層資料並重繪
-export function bindDragReorder(itemEls, getId, onDrop) {
+// dragMime：選填，若指定則額外把 id 存成這個自訂 MIME type，讓其他容器（見 bindDropZone）可以辨識並接收這個拖曳
+export function bindDragReorder(itemEls, getId, onDrop, dragMime) {
   ensureAutoScroll();
   let draggedId = null;
   itemEls.forEach((item) => {
@@ -53,6 +54,7 @@ export function bindDragReorder(itemEls, getId, onDrop) {
       item.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', draggedId);
+      if (dragMime) e.dataTransfer.setData(dragMime, draggedId);
     });
     item.addEventListener('dragend', () => {
       item.classList.remove('dragging');
@@ -66,6 +68,24 @@ export function bindDragReorder(itemEls, getId, onDrop) {
       const targetId = getId(item);
       if (draggedId && draggedId !== targetId) onDrop(draggedId, targetId);
       draggedId = null;
+    });
+  });
+}
+
+// zoneEls：可以「接住」其他清單拖過來項目的容器（例如側邊欄分類）
+// dragMime：只接受帶有這個自訂 MIME type 的拖曳（見 bindDragReorder 的 dragMime 參數）
+// getZoneId：從容器元素取得這個容器代表的 id
+// onDrop(draggedId, zoneId)：放開時呼叫
+export function bindDropZone(zoneEls, dragMime, getZoneId, onDrop) {
+  zoneEls.forEach((zone) => {
+    zone.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes(dragMime)) e.preventDefault();
+    });
+    zone.addEventListener('drop', (e) => {
+      if (!e.dataTransfer.types.includes(dragMime)) return;
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData(dragMime);
+      if (draggedId) onDrop(draggedId, getZoneId(zone));
     });
   });
 }

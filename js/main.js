@@ -8,6 +8,8 @@ import {
   addCategory as addWorksCategory,
   deleteCategory as deleteWorksCategory,
   reorderCategories as reorderWorksCategories,
+  updateCategory as updateWorksCategory,
+  reassignWorkCategory,
   openCategoryModal as openWorksCategoryModal,
 } from './views/works.js';
 import {
@@ -17,10 +19,12 @@ import {
   addCategoryAt as addDiagramsCategoryAt,
   deleteCategoryAt as deleteDiagramsCategoryAt,
   reorderCategoriesAt as reorderDiagramsCategoriesAt,
+  updateCategoryAt as updateDiagramsCategoryAt,
+  moveItemToTopCategory as moveDiagramsItemToTopCategory,
   openCategoryModal as openDiagramsCategoryModal,
 } from './views/diagrams.js';
 import { renderMaterialsView } from './views/materials.js';
-import { bindDragReorder } from './drag-reorder.js';
+import { bindDragReorder, bindDropZone } from './drag-reorder.js';
 
 const auth = getAuth();
 const ctx = {
@@ -30,6 +34,7 @@ const ctx = {
   navigate,
 };
 
+let currentWorksPath = [];
 let currentDiagramsPath = [];
 let currentMaterialsPath = [];
 
@@ -60,7 +65,12 @@ async function renderWorksSubnav(activeCategoryId) {
       <div class="nav-subitem ${c.id === activeCategoryId ? 'active' : ''}" data-cat="${c.id}" style="display:flex; align-items:center; gap:6px;">
         ${editing ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
         <span class="nav-subitem-name" style="flex:1; cursor:pointer;">${c.name}</span>
-        ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
+        ${
+          editing
+            ? `<button class="del-btn" data-edit-cat="${c.id}" style="position:static; color:var(--green-700);">${ICONS.pencil}</button>
+               <button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>`
+            : ''
+        }
       </div>`
       )
       .join('')}
@@ -68,6 +78,13 @@ async function renderWorksSubnav(activeCategoryId) {
   `;
   subnav.querySelectorAll('[data-cat] .nav-subitem-name').forEach((el) => {
     el.addEventListener('click', () => navigate(['works', 'cat', el.parentElement.dataset.cat]));
+  });
+  subnav.querySelectorAll('[data-edit-cat]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = categories.find((c) => c.id === el.dataset.editCat);
+      openWorksCategoryModal(({ name }) => updateWorksCategory(category.id, name), category);
+    });
   });
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
     el.addEventListener('click', (e) => {
@@ -80,6 +97,12 @@ async function renderWorksSubnav(activeCategoryId) {
       Array.from(subnav.querySelectorAll('[data-cat]')),
       (el) => el.dataset.cat,
       (draggedId, targetId) => reorderWorksCategories(draggedId, targetId)
+    );
+    bindDropZone(
+      Array.from(subnav.querySelectorAll('[data-cat]')),
+      'application/x-work-id',
+      (el) => el.dataset.cat,
+      (workId, categoryId) => reassignWorkCategory(workId, categoryId, activeCategoryId)
     );
   }
   const addCat = subnav.querySelector('#add-works-cat');
@@ -102,7 +125,12 @@ async function renderDiagramsSubnav() {
       <div class="nav-subitem" data-cat="${c.id}" style="display:flex; align-items:center; gap:6px;">
         ${editing ? `<span class="drag-handle">${ICONS.grip}</span>` : ''}
         <span class="nav-subitem-name" style="flex:1; cursor:pointer;">${c.name}</span>
-        ${editing ? `<button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>` : ''}
+        ${
+          editing
+            ? `<button class="del-btn" data-edit-cat="${c.id}" style="position:static; color:var(--green-700);">${ICONS.pencil}</button>
+               <button class="del-btn" data-del-cat="${c.id}" style="position:static;">&#10005;</button>`
+            : ''
+        }
       </div>`
       )
       .join('')}
@@ -110,6 +138,16 @@ async function renderDiagramsSubnav() {
   `;
   subnav.querySelectorAll('[data-cat] .nav-subitem-name').forEach((el) => {
     el.addEventListener('click', () => navigate(['diagrams', el.parentElement.dataset.cat]));
+  });
+  subnav.querySelectorAll('[data-edit-cat]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = categories.find((c) => c.id === el.dataset.editCat);
+      openDiagramsCategoryModal(({ name, coverPending, removeCover }) => {
+        updateDiagramsCategoryAt([], category.id, { name, coverPending, removeCover });
+        renderDiagramsSubnav();
+      }, category);
+    });
   });
   subnav.querySelectorAll('[data-del-cat]').forEach((el) => {
     el.addEventListener('click', (e) => {
@@ -125,6 +163,14 @@ async function renderDiagramsSubnav() {
       (draggedId, targetId) => {
         reorderDiagramsCategoriesAt([], draggedId, targetId);
         renderDiagramsSubnav();
+      }
+    );
+    bindDropZone(
+      Array.from(subnav.querySelectorAll('[data-cat]')),
+      'application/x-diagram-item',
+      (el) => el.dataset.cat,
+      (itemId, categoryId) => {
+        moveDiagramsItemToTopCategory(currentDiagramsPath, itemId, categoryId);
       }
     );
   }
@@ -158,9 +204,9 @@ function renderShell() {
   });
   renderWorksSubnav();
   renderMaterialsSubnav();
-  window.addEventListener('works:updated', () => renderWorksSubnav());
+  window.addEventListener('works:updated', () => onRoute(['works', ...currentWorksPath]));
   window.addEventListener('works:editmode-changed', () => renderWorksSubnav());
-  window.addEventListener('diagrams:updated', () => renderDiagramsSubnav());
+  window.addEventListener('diagrams:updated', () => onRoute(['diagrams', ...currentDiagramsPath]));
   window.addEventListener('diagrams:editmode-changed', () => renderDiagramsSubnav());
 
   const logoutEl = document.getElementById('logout-link');
@@ -206,8 +252,9 @@ async function onRoute(path) {
   }
 
   if (section === 'works') {
-    await renderWorksView(container, path.slice(1), ctx);
-    const activeCategoryId = path[1] === 'cat' ? path[2] : null;
+    currentWorksPath = path.slice(1);
+    await renderWorksView(container, currentWorksPath, ctx);
+    const activeCategoryId = currentWorksPath[0] === 'cat' ? currentWorksPath[1] : null;
     await renderWorksSubnav(activeCategoryId);
   } else if (section === 'diagrams') {
     currentDiagramsPath = path.slice(1);

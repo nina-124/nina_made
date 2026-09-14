@@ -110,17 +110,17 @@ async function commitPendingWorkImage(work, token) {
   }
 }
 
-export function openCategoryModal(onSubmit) {
+export function openCategoryModal(onSubmit, existing) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <div class="modal-header"><span>新增分類</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-header"><span>${existing ? '編輯分類' : '新增分類'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>分類名稱 <input type="text" name="name" placeholder="例如：寶可夢"></label>
+        <label>分類名稱 <input type="text" name="name" placeholder="例如：寶可夢" value="${existing?.name || ''}"></label>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
-          <button type="button" class="btn btn-primary" data-submit>新增</button>
+          <button type="button" class="btn btn-primary" data-submit>${existing ? '儲存' : '新增'}</button>
         </div>
       </div>
     </div>
@@ -403,7 +403,8 @@ function renderGallery(container, data, filterCategoryId, ctx) {
       (draggedId, targetId) => {
         reorderById(cache.works, draggedId, targetId);
         renderGallery(container, cache, filterCategoryId, ctx);
-      }
+      },
+      'application/x-work-id'
     );
   }
 
@@ -499,6 +500,24 @@ export function deleteCategory(id) {
 
 export function reorderCategories(draggedId, targetId) {
   if (reorderById(cache.categories, draggedId, targetId)) notifyUpdated();
+}
+
+export function updateCategory(id, name) {
+  const category = cache.categories.find((c) => c.id === id);
+  if (!category) return;
+  category.name = name;
+  notifyUpdated();
+}
+
+export function reassignWorkCategory(workId, targetCategoryId, currentCategoryId) {
+  const work = cache.works.find((w) => w.id === workId);
+  if (!work) return;
+  work.categoryIds = work.categoryIds || [];
+  if (currentCategoryId) {
+    work.categoryIds = work.categoryIds.filter((id) => id !== currentCategoryId);
+  }
+  if (!work.categoryIds.includes(targetCategoryId)) work.categoryIds.push(targetCategoryId);
+  notifyUpdated();
 }
 
 export async function renderWorksView(container, path, ctx) {

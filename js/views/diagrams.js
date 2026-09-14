@@ -180,6 +180,36 @@ export function reorderCategoriesAt(path, draggedId, targetId) {
   if (reorderById(node.items || [], draggedId, targetId)) notifyUpdated();
 }
 
+export function updateCategoryAt(path, id, { name, coverPending, removeCover }) {
+  let { node } = findNode(path);
+  if (node.type === 'pattern') {
+    node = findNode(path.slice(0, -1)).node;
+  }
+  const category = (node.items || []).find((i) => i.id === id);
+  if (!category) return;
+  category.name = name;
+  if (removeCover) {
+    category.cover = null;
+    delete category.coverPending;
+  }
+  if (coverPending) category.coverPending = coverPending;
+  notifyUpdated();
+}
+
+// 把目前這一層裡的某個項目（分類或圖解筆記），搬到最上層的另一個分類底下
+export function moveItemToTopCategory(fromPath, itemId, toCategoryId) {
+  if (itemId === toCategoryId) return;
+  const { node: fromNode } = findNode(fromPath);
+  const idx = (fromNode.items || []).findIndex((i) => i.id === itemId);
+  if (idx === -1) return;
+  const toCategory = (cache.items || []).find((i) => i.id === toCategoryId && i.type === 'category');
+  if (!toCategory) return;
+  const [item] = fromNode.items.splice(idx, 1);
+  toCategory.items = toCategory.items || [];
+  toCategory.items.push(item);
+  notifyUpdated();
+}
+
 export function openCategoryModal(onSubmit, existing) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -340,7 +370,8 @@ async function renderTree(container, node, path, trail, ctx) {
       (draggedId, targetId) => {
         reorderById(node.items, draggedId, targetId);
         renderTree(container, node, path, trail, ctx);
-      }
+      },
+      'application/x-diagram-item'
     );
   }
 
