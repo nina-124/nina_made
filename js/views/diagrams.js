@@ -401,13 +401,7 @@ async function renderTree(container, node, path, trail, ctx) {
       Array.from(container.querySelectorAll('.card[data-id]')),
       (el) => el.dataset.id,
       (draggedId, targetId) => {
-        // 拖到「分類資料夾」卡片上 = 搬進該分類；拖到一般卡片上 = 純粹排序
-        const targetItem = items.find((i) => i.id === targetId);
-        if (targetItem?.type === 'category') {
-          moveItemToCategory(path, draggedId, targetId);
-        } else {
-          reorderById(node.items, draggedId, targetId);
-        }
+        reorderById(node.items, draggedId, targetId);
         renderTree(container, node, path, trail, ctx);
       },
       'application/x-diagram-item'
