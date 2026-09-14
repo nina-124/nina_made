@@ -10,7 +10,7 @@ export function reorderById(arr, draggedId, targetId) {
 }
 
 // 這些元素本身有自己的互動行為（輸入、點擊、編輯），拖曳不應該從它們身上啟動
-const NON_DRAG_SELECTOR = 'input, textarea, button, a, [contenteditable="true"], img';
+const NON_DRAG_SELECTOR = 'input, textarea, select, button, a, [contenteditable="true"], img';
 
 // 拖曳到畫面上/下邊緣時自動捲動（原生 HTML5 拖放不一定會自動捲動長頁面，這裡手動補上）
 let autoScrollBound = false;

@@ -351,6 +351,17 @@ async function renderTree(container, node, path, trail, ctx) {
           }
           <div class="card-thumb" data-thumb="${item.id}">${item.type === 'category' ? ICONS.folder : ''}</div>
           <div class="card-name">${item.name}</div>
+          ${
+            editMode && items.filter((i) => i.type === 'category' && i.id !== item.id).length
+              ? `<select class="card-move-select" data-move-id="${item.id}">
+                  <option value="">搬到分類…</option>
+                  ${items
+                    .filter((i) => i.type === 'category' && i.id !== item.id)
+                    .map((c) => `<option value="${c.id}">${c.name}</option>`)
+                    .join('')}
+                </select>`
+              : ''
+          }
         </div>`
         )
         .join('')}
@@ -372,8 +383,16 @@ async function renderTree(container, node, path, trail, ctx) {
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('[data-del], [data-edit-cat], .drag-handle')) return;
+      if (e.target.closest('[data-del], [data-edit-cat], .drag-handle, select')) return;
       ctx.navigate(['diagrams', ...path, el.dataset.id]);
+    });
+  });
+
+  container.querySelectorAll('[data-move-id]').forEach((sel) => {
+    sel.addEventListener('click', (e) => e.stopPropagation());
+    sel.addEventListener('change', () => {
+      const targetId = sel.value;
+      if (targetId) moveItemToCategory(path, sel.dataset.moveId, targetId);
     });
   });
 
