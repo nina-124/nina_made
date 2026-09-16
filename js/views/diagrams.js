@@ -217,13 +217,24 @@ export function updateCategoryAt(path, id, { name, coverPending, removeCover }) 
   notifyUpdated();
 }
 
-// 把目前這一層裡的某個項目（分類或圖解筆記），搬到最上層的另一個分類底下
-export function moveItemToTopCategory(fromPath, itemId, toCategoryId) {
+// 在整棵分類樹裡找某個 id 的分類節點（不限層級）
+function findCategoryById(items, id) {
+  for (const item of items || []) {
+    if (item.type !== 'category') continue;
+    if (item.id === id) return item;
+    const found = findCategoryById(item.items, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+// 把目前這一層裡的某個項目（分類或圖解筆記），搬到「整棵樹裡的任何一個分類」底下
+export function moveItemToCategory(fromPath, itemId, toCategoryId) {
   if (itemId === toCategoryId) return;
   const { node: fromNode } = findNode(fromPath);
   const idx = (fromNode.items || []).findIndex((i) => i.id === itemId);
   if (idx === -1) return;
-  const toCategory = (cache.items || []).find((i) => i.id === toCategoryId && i.type === 'category');
+  const toCategory = findCategoryById(cache.items, toCategoryId);
   if (!toCategory) return;
   const [item] = fromNode.items.splice(idx, 1);
   toCategory.items = toCategory.items || [];
@@ -231,18 +242,24 @@ export function moveItemToTopCategory(fromPath, itemId, toCategoryId) {
   notifyUpdated();
 }
 
-// 把目前這一層裡的某個項目，搬到「同一層」的另一個分類資料夾底下（拖到畫面上的分類卡片）
-export function moveItemToCategory(path, itemId, toCategoryId) {
-  if (itemId === toCategoryId) return;
-  const { node } = findNode(path);
-  const idx = (node.items || []).findIndex((i) => i.id === itemId);
-  if (idx === -1) return;
-  const toCategory = (node.items || []).find((i) => i.id === toCategoryId && i.type === 'category');
-  if (!toCategory) return;
-  const [item] = node.items.splice(idx, 1);
-  toCategory.items = toCategory.items || [];
-  toCategory.items.push(item);
-  notifyUpdated();
+// 給「搬到分類…」下拉選單用：列出整棵樹裡所有分類（用 / 表示層級），並排除自己與自己底下的子分類（避免搬進自己形成循環）
+function collectCategoryOptions(items, prefix, excludeIds) {
+  let options = [];
+  for (const item of items || []) {
+    if (item.type !== 'category' || excludeIds.has(item.id)) continue;
+    const label = prefix ? `${prefix} / ${item.name}` : item.name;
+    options.push({ id: item.id, name: label });
+    options = options.concat(collectCategoryOptions(item.items, label, excludeIds));
+  }
+  return options;
+}
+
+function collectSubtreeIds(item) {
+  const ids = new Set([item.id]);
+  for (const child of item.items || []) {
+    if (child.type === 'category') collectSubtreeIds(child).forEach((id) => ids.add(id));
+  }
+  return ids;
 }
 
 export function openCategoryModal(onSubmit, existing) {
@@ -373,14 +390,17 @@ async function renderTree(container, node, path, trail, ctx) {
           <div class="card-thumb" data-thumb="${item.id}">${item.type === 'category' ? ICONS.folder : ''}</div>
           <div class="card-name">${item.name}</div>
           ${
-            editMode && items.filter((i) => i.type === 'category' && i.id !== item.id).length
-              ? `<select class="card-move-select" data-move-id="${item.id}">
-                  <option value="">搬到分類…</option>
-                  ${items
-                    .filter((i) => i.type === 'category' && i.id !== item.id)
-                    .map((c) => `<option value="${c.id}">${c.name}</option>`)
-                    .join('')}
-                </select>`
+            editMode
+              ? (() => {
+                  const excludeIds = item.type === 'category' ? collectSubtreeIds(item) : new Set();
+                  const options = collectCategoryOptions(cache.items, '', excludeIds);
+                  return options.length
+                    ? `<select class="card-move-select" data-move-id="${item.id}">
+                        <option value="">搬到分類…</option>
+                        ${options.map((c) => `<option value="${c.id}">${c.name}</option>`).join('')}
+                      </select>`
+                    : '';
+                })()
               : ''
           }
         </div>`

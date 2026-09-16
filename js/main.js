@@ -20,7 +20,7 @@ import {
   deleteCategoryAt as deleteDiagramsCategoryAt,
   reorderCategoriesAt as reorderDiagramsCategoriesAt,
   updateCategoryAt as updateDiagramsCategoryAt,
-  moveItemToTopCategory as moveDiagramsItemToTopCategory,
+  moveItemToCategory as moveDiagramsItemToCategory,
   openCategoryModal as openDiagramsCategoryModal,
 } from './views/diagrams.js';
 import { renderMaterialsView } from './views/materials.js';
@@ -170,7 +170,7 @@ async function renderDiagramsSubnav() {
       'application/x-diagram-item',
       (el) => el.dataset.cat,
       (itemId, categoryId) => {
-        moveDiagramsItemToTopCategory(currentDiagramsPath, itemId, categoryId);
+        moveDiagramsItemToCategory(currentDiagramsPath, itemId, categoryId);
       }
     );
   }
