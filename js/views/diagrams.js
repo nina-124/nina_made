@@ -62,6 +62,27 @@ function newId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
+// 複製一份圖解筆記：內容整份複製，但表格/列/圖文區塊都要換新 id，避免跟原本的筆記共用到同一個 id
+function duplicatePattern(item) {
+  const clone = JSON.parse(JSON.stringify(item));
+  clone.id = slugify(item.name);
+  clone.name = `${item.name}（複製）`;
+  const rowIdMap = new Map();
+  (clone.tables || []).forEach((table) => {
+    table.id = newId();
+    (table.rows || []).forEach((row) => {
+      const oldRowId = row.id;
+      row.id = newId();
+      rowIdMap.set(oldRowId, row.id);
+    });
+  });
+  (clone.blocks || []).forEach((block) => {
+    block.id = newId();
+    if (block.alignRow && rowIdMap.has(block.alignRow)) block.alignRow = rowIdMap.get(block.alignRow);
+  });
+  return clone;
+}
+
 function resizeImageToDataUrl(file, maxWidth = 800) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -345,7 +366,7 @@ async function renderTree(container, node, path, trail, ctx) {
                  ${
                    item.type === 'category'
                      ? `<button class="del-btn" data-edit-cat="${item.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>`
-                     : ''
+                     : `<button class="del-btn" data-copy-pattern="${item.id}" style="right:22px; color:var(--green-700);" title="複製圖解筆記">${ICONS.copy}</button>`
                  }`
               : ''
           }
@@ -383,7 +404,12 @@ async function renderTree(container, node, path, trail, ctx) {
 
   container.querySelectorAll('.card[data-id]').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('[data-del], [data-edit-cat], .drag-handle, select')) return;
+      if (editMode) {
+        // 編輯模式下卡片上還有拖曳把手、下拉選單等其他操作，只有點縮圖才會進入筆記本身
+        if (!e.target.closest('.card-thumb')) return;
+      } else if (e.target.closest('[data-del], [data-edit-cat], [data-copy-pattern], .drag-handle, select')) {
+        return;
+      }
       ctx.navigate(['diagrams', ...path, el.dataset.id]);
     });
   });
@@ -393,6 +419,16 @@ async function renderTree(container, node, path, trail, ctx) {
     sel.addEventListener('change', () => {
       const targetId = sel.value;
       if (targetId) moveItemToCategory(path, sel.dataset.moveId, targetId);
+    });
+  });
+
+  container.querySelectorAll('[data-copy-pattern]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const original = items.find((i) => i.id === el.dataset.copyPattern);
+      if (!original) return;
+      node.items.push(duplicatePattern(original));
+      renderTree(container, node, path, trail, ctx);
     });
   });
 
@@ -657,8 +693,7 @@ function renderTableSection(table, node) {
       <div class="diagram-table-head">
         ${
           editMode
-            ? `<span class="drag-handle">${ICONS.grip}</span>
-               <input type="text" class="part-name" value="${table.part}" data-field="part" placeholder="標題">
+            ? `<input type="text" class="part-name" value="${table.part}" data-field="part" placeholder="標題">
                <input type="text" class="part-note" value="${table.note || ''}" data-field="note" placeholder="說明">
                <button class="del-btn" data-del-table style="position:static;">&#10005;</button>`
             : `<h3>${table.part}</h3>
@@ -809,7 +844,11 @@ async function renderPatternEditor(container, node, trail, ctx) {
     <div id="print-area">
       <div class="diagram-top">
         <div class="diagram-top-left">
-          <h2 class="work-detail-name">${node.name}</h2>
+          ${
+            editMode
+              ? `<input type="text" id="pattern-name" class="work-detail-name-input" value="${node.name}" placeholder="請輸入名稱">`
+              : `<h2 class="work-detail-name">${node.name}</h2>`
+          }
           <div class="diagram-yarn">
             <label style="font-weight:700;">補充說明</label>
             ${
@@ -871,6 +910,13 @@ async function renderPatternEditor(container, node, trail, ctx) {
   const yarnNote = container.querySelector('#yarn-note');
   if (yarnNote) yarnNote.addEventListener('input', () => (node.yarnNote = yarnNote.value));
 
+  const nameInput = container.querySelector('#pattern-name');
+  if (nameInput) {
+    nameInput.addEventListener('input', () => {
+      node.name = nameInput.value;
+    });
+  }
+
   const coverImg = container.querySelector('[data-cover-img]');
   const coverFile = container.querySelector('[data-cover-file]');
   const coverWidthInput = container.querySelector('[data-cover-width]');
@@ -913,14 +959,7 @@ async function renderPatternEditor(container, node, trail, ctx) {
   await bindRowAttachments(container, node, ctx);
 
   if (editMode) {
-    bindDragReorder(
-      Array.from(container.querySelectorAll('.diagram-table[data-table]')),
-      (el) => el.dataset.table,
-      (draggedId, targetId) => {
-        reorderById(node.tables, draggedId, targetId);
-        rerender();
-      }
-    );
+    // 表格本身不再直接可拖曳（避免跟選取文字/點擊儲存格互相干擾），只能透過上方標題導覽列拖曳排序
     bindDragReorder(
       Array.from(container.querySelectorAll('.toc-item[data-jump]')),
       (el) => el.dataset.jump,
