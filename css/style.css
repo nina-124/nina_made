@@ -92,7 +92,7 @@ a { color: inherit; }
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   align-self: flex-start;
 }
 .sidebar::after {
@@ -107,11 +107,18 @@ a { color: inherit; }
 }
 .sidebar > .nav-section,
 .sidebar > .logout-link { align-self: stretch; }
-.sidebar > .nav-section:first-of-type { margin-top: 18px; }
+.sidebar > .nav-section:first-of-type {
+  margin-top: 18px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sidebar > .logout-link { flex-shrink: 0; }
 
 .sidebar-logo {
   width: 92px;
   height: 92px;
+  flex-shrink: 0;
   border-radius: var(--blob-radius);
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(54, 75, 53, 0.25);
@@ -123,6 +130,7 @@ a { color: inherit; }
 
 .sidebar-tagline {
   margin: 0;
+  flex-shrink: 0;
   font-family: var(--font-script);
   font-weight: 700;
   font-size: 17px;
@@ -734,6 +742,7 @@ a { color: inherit; }
 @media (max-width: 720px) {
   .app-shell { flex-direction: column; }
   .sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; height: auto; }
+  .sidebar > .nav-section:first-of-type { flex: none; min-height: auto; overflow-y: visible; }
   .nav-section { flex-direction: row; }
 }
 
