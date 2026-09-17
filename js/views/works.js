@@ -162,26 +162,32 @@ function openWorkModal({ categories, existing }, onSubmit) {
   let newPhotos = []; // { src: dataUrl } 尚未上傳的新照片
 
   overlay.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box modal-box-work">
       <div class="modal-header"><span>${existing ? '編輯作品' : '新增作品'}</span><span class="close-x">&#10005;</span></div>
       <div class="modal-body">
-        <label>名稱 <input type="text" name="name" placeholder="請輸入名稱" value="${existing?.name || ''}"></label>
-        <label>作品敘述 <textarea name="description" placeholder="請輸入作品敘述（選填）" rows="3">${existing?.description || ''}</textarea></label>
-        <label>封面照片（${existing ? '不選則維持原圖' : '選填'}） <input type="file" name="cover" accept="image/*"></label>
-        ${
-          existing?.cover
-            ? `<label style="flex-direction:row; align-items:center; gap:8px; font-weight:400;">
-                <input type="checkbox" name="removeCover"> 移除目前的照片
-               </label>`
-            : ''
-        }
-        <label>更多照片（連封面最多 5 張）
-          <div class="extra-photo-strip" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-          <input type="file" name="extraPhoto" accept="image/*" style="margin-top:6px;">
-        </label>
-        <label>分類（可複選）</label>
-        <div style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto;">
-          ${checkboxes || '<span style="color:#a7b39c; font-size:13px;">還沒有任何分類，先在左側新增分類</span>'}
+        <div class="work-modal-columns">
+          <div class="work-modal-col">
+            <label>名稱 <input type="text" name="name" placeholder="請輸入名稱" value="${existing?.name || ''}"></label>
+            <label>作品敘述 <textarea name="description" placeholder="請輸入作品敘述（選填）" rows="3">${existing?.description || ''}</textarea></label>
+            <label>封面照片（${existing ? '不選則維持原圖' : '選填'}） <input type="file" name="cover" accept="image/*"></label>
+            ${
+              existing?.cover
+                ? `<label style="flex-direction:row; align-items:center; gap:8px; font-weight:400;">
+                    <input type="checkbox" name="removeCover"> 移除目前的照片
+                   </label>`
+                : ''
+            }
+            <label>更多照片（連封面最多 5 張）
+              <div class="extra-photo-strip" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+              <input type="file" name="extraPhoto" accept="image/*" style="margin-top:6px;">
+            </label>
+          </div>
+          <div class="work-modal-col">
+            <label>分類（可複選）</label>
+            <div class="category-checklist">
+              ${checkboxes || '<span style="color:#a7b39c; font-size:13px;">還沒有任何分類，先在左側新增分類</span>'}
+            </div>
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-cancel>取消</button>
