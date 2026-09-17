@@ -199,12 +199,13 @@
     },
     {
       "id": "哈利波特-金探子-lfzn",
-      "name": "哈利波特-金探子",
+      "name": "金探子",
       "description": "",
       "categoryIds": [
         "哈利波特-60uq"
       ],
-      "cover": "assets/img/works/哈利波特-金探子-lfzn.jpg"
+      "cover": "assets/img/works/哈利波特-金探子-lfzn.jpg",
+      "photos": []
     },
     {
       "id": "大陸ip-桃園深處有人家-m305",
