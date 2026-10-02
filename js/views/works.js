@@ -90,24 +90,32 @@ async function commitCache(token, message) {
 }
 
 async function commitPendingWorkImage(work, token) {
-  if (work.coverPending) {
-    const path = `assets/img/works/${work.id}.jpg`;
-    const base64 = work.coverPending.split(',')[1];
-    await uploadImageFile(PUBLIC_REPO, path, base64, token, `更新作品照片 ${work.name}`);
-    localPreviewCache.set(work.id, work.coverPending);
-    work.cover = path;
-    delete work.coverPending;
-  }
-  if (work.photosPending?.length) {
-    work.photos = work.photos || [];
-    for (const dataUrl of work.photosPending) {
-      const path = `assets/img/works/${work.id}-${newId()}.jpg`;
-      const base64 = dataUrl.split(',')[1];
-      await uploadImageFile(PUBLIC_REPO, path, base64, token, `新增作品照片 ${work.name}`);
-      work.photos.push(path);
-    }
-    delete work.photosPending;
-  }
+  const coverTask = work.coverPending
+    ? (async () => {
+        const path = `assets/img/works/${work.id}.jpg`;
+        const base64 = work.coverPending.split(',')[1];
+        await uploadImageFile(PUBLIC_REPO, path, base64, token, `更新作品照片 ${work.name}`);
+        localPreviewCache.set(work.id, work.coverPending);
+        work.cover = path;
+        delete work.coverPending;
+      })()
+    : Promise.resolve();
+
+  const photosTask = work.photosPending?.length
+    ? Promise.all(
+        work.photosPending.map((dataUrl) => {
+          const path = `assets/img/works/${work.id}-${newId()}.jpg`;
+          const base64 = dataUrl.split(',')[1];
+          return uploadImageFile(PUBLIC_REPO, path, base64, token, `新增作品照片 ${work.name}`).then(() => path);
+        })
+      ).then((paths) => {
+        work.photos = work.photos || [];
+        work.photos.push(...paths);
+        delete work.photosPending;
+      })
+    : Promise.resolve();
+
+  await Promise.all([coverTask, photosTask]);
 }
 
 export function openCategoryModal(onSubmit, existing) {
@@ -474,9 +482,7 @@ function renderGallery(container, data, filterCategoryId, ctx) {
           renderGallery(container, cache, filterCategoryId, ctx);
           return;
         }
-        for (const work of cache.works) {
-          await commitPendingWorkImage(work, ctx.token);
-        }
+        await Promise.all(cache.works.map((work) => commitPendingWorkImage(work, ctx.token)));
         await commitCache(ctx.token, '更新作品集');
         editMode = false;
         notifyEditModeChanged();

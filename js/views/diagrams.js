@@ -121,28 +121,40 @@ async function resolveImageSrc(path, token) {
 }
 
 async function commitPendingImages(items, token) {
-  for (const item of items || []) {
-    if (item.coverPending) {
-      const path = `assets/img/${item.id}-cover.jpg`;
-      const base64 = item.coverPending.split(',')[1];
-      await uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解封面 ${item.name}`);
-      imageSrcCache.set(path, item.coverPending);
-      setLocalImageCache(path, item.coverPending);
-      item.cover = path;
-      delete item.coverPending;
-    }
-    for (const block of item.blocks || []) {
-      if (block.type === 'image' && block.content && block.content.startsWith('data:')) {
-        const path = `assets/img/${item.id}-block-${block.id}.jpg`;
-        const base64 = block.content.split(',')[1];
-        await uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解圖片 ${item.name}`);
-        imageSrcCache.set(path, block.content);
-        setLocalImageCache(path, block.content);
-        block.content = path;
+  await Promise.all(
+    (items || []).map(async (item) => {
+      const tasks = [];
+      if (item.coverPending) {
+        const path = `assets/img/${item.id}-cover.jpg`;
+        const base64 = item.coverPending.split(',')[1];
+        const coverDataUrl = item.coverPending;
+        tasks.push(
+          uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解封面 ${item.name}`).then(() => {
+            imageSrcCache.set(path, coverDataUrl);
+            setLocalImageCache(path, coverDataUrl);
+            item.cover = path;
+            delete item.coverPending;
+          })
+        );
       }
-    }
-    if (item.items) await commitPendingImages(item.items, token);
-  }
+      for (const block of item.blocks || []) {
+        if (block.type === 'image' && block.content && block.content.startsWith('data:')) {
+          const path = `assets/img/${item.id}-block-${block.id}.jpg`;
+          const base64 = block.content.split(',')[1];
+          const blockDataUrl = block.content;
+          tasks.push(
+            uploadImageFile(PRIVATE_REPO, path, base64, token, `更新圖解圖片 ${item.name}`).then(() => {
+              imageSrcCache.set(path, blockDataUrl);
+              setLocalImageCache(path, blockDataUrl);
+              block.content = path;
+            })
+          );
+        }
+      }
+      if (item.items) tasks.push(commitPendingImages(item.items, token));
+      await Promise.all(tasks);
+    })
+  );
 }
 
 async function commitCache(token, message) {

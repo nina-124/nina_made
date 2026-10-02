@@ -89,11 +89,13 @@ a { color: inherit; }
   align-items: center;
   gap: 10px;
   box-shadow: inset -18px 0 30px -28px rgba(54, 75, 53, 0.45);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  align-self: flex-start;
+  z-index: 5;
 }
 .sidebar::after {
   content: '✨';
@@ -198,6 +200,7 @@ a { color: inherit; }
   flex: 1;
   min-width: 0;
   padding: 24px 32px;
+  margin-left: 260px;
 }
 
 .topbar {
@@ -759,11 +762,81 @@ a { color: inherit; }
 }
 .placeholder-panel::before { content: '✨'; display: block; font-size: 28px; margin-bottom: 10px; }
 
-@media (max-width: 720px) {
-  .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: row; overflow-x: auto; position: static; height: auto; }
-  .sidebar > .nav-section:first-of-type { flex: none; min-height: auto; overflow-y: visible; }
-  .nav-section { flex-direction: row; }
+/* 手機版：底部分頁列 + 分類橫向標籤（觸控裝置在「電腦版網站」模式下也套用） */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px) {
+  .sidebar {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 8px;
+    overflow: visible;
+    box-shadow: 0 -4px 16px rgba(54, 75, 53, 0.18);
+  }
+  .sidebar::after, .sidebar-logo, .sidebar-tagline { display: none; }
+  .sidebar > .nav-section:first-of-type {
+    margin-top: 0;
+    flex: 1;
+    flex-direction: row;
+    gap: 4px;
+    overflow: visible;
+  }
+  .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 52px;
+    padding: 6px 4px;
+    border-left: none;
+    font-size: 12px;
+    text-align: center;
+  }
+  .logout-link {
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+    padding: 0 6px;
+    max-width: 80px;
+    text-align: center;
+    font-size: 12px;
+  }
+  /* 子分類：固定在畫面頂部的可滑動標籤列 */
+  #sidebar-nav .nav-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 2px 10px rgba(54, 75, 53, 0.1);
+  }
+  #sidebar-nav .nav-subitem,
+  #sidebar-nav .nav-add {
+    flex: none;
+    width: auto;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(110, 127, 82, 0.12);
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  #sidebar-nav .nav-subitem.active { background: rgba(110, 127, 82, 0.3); }
+  .main { margin-left: 0; padding: 72px 14px 96px; }
+  /* 兩欄卡片 */
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .card { padding: 10px; }
+  /* 標題獨占一行，搜尋欄撐滿寬度（16px 以上避免 iOS 聚焦時自動放大） */
+  .topbar { gap: 10px; margin-bottom: 16px; }
+  .breadcrumb { flex: 1 1 100%; }
+  .search-box { flex: 1 1 0; max-width: none; padding: 10px 16px; }
+  .search-box input { font-size: 16px; }
 }
 
 /* ---------- 列印圖解筆記（標題+作品圖+線材需求+表格+補充圖解），A4 版面，字級/間距縮小以精簡頁數 ---------- */
@@ -772,7 +845,7 @@ a { color: inherit; }
   body { background: #fff; }
   body::before, body::after { display: none !important; }
   .sidebar, .topbar, .logout-link { display: none !important; }
-  .main { padding: 0; }
+  .main { padding: 0; margin-left: 0; }
   #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; }
   .diagram-top-left .work-detail-name::before { content: none; }
   .diagram-cover img { border-radius: 12px; box-shadow: none; }
