@@ -655,7 +655,7 @@ a { color: inherit; }
 @media (max-width: 700px) {
   .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em; }
   .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em 24px; }
-  .attach-cell { grid-column: 1 / -1; }
+  .attach-cell { grid-column: 1 / -1; min-width: 0; }
 }
 
 .cell-edit {
@@ -669,6 +669,8 @@ a { color: inherit; }
 .row-attachments { display: flex; flex-direction: column; gap: 8px; }
 .row-attach { position: relative; }
 .row-attach .del-btn { position: absolute; top: -6px; right: -6px; }
+.row-attach { min-width: 0; }
+.row-attach .block-image { max-width: 100%; }
 .row-attach .block-image img { max-width: 100%; height: auto; border-radius: 8px; display: block; }
 .row-attach .block-size { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 4px; color: var(--text-grey); }
 .row-attach .block-size input { width: 60px; border-radius: 6px; border: 1px solid var(--card-border); padding: 3px 5px; }
