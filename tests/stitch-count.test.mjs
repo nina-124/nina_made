@@ -3,6 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { countStitches, roundHeightOf, analyzeStitches } from '../js/stitch-count.js';
 
+// 只看總針數與 BLO 針數（回傳值另外還有每針的顏色）
+const blo = (text) => {
+  const r = analyzeStitches(text);
+  return r && { total: r.total, blo: r.blo };
+};
+
 test('使用者範例一：括號前的數字是重複，CH 不算針，加針算 2', () => {
   assert.equal(countStitches('2CH, [3(X, V), X], 2X,  [3(X, V), X], 2X'), 24);
 });
@@ -68,10 +74,10 @@ test('BLO 後面沒有接東西時視為看不懂，不亂算', () => {
 });
 
 test('BLO 針數：整圈 BLO 與只有部分組別 BLO 要能分辨', () => {
-  assert.deepEqual(analyzeStitches('BLO8(X, V, X)'), { total: 32, blo: 32 });
-  assert.deepEqual(analyzeStitches('2(X, V, X), BLO-2(X, V, X), 4(X, V, X)'), { total: 32, blo: 8 });
-  assert.deepEqual(analyzeStitches('8(2X, V, X)'), { total: 40, blo: 0 });
-  assert.deepEqual(analyzeStitches('BLO(X, 2(V, X))'), { total: 7, blo: 7 });
+  assert.deepEqual(blo('BLO8(X, V, X)'), { total: 32, blo: 32 });
+  assert.deepEqual(blo('2(X, V, X), BLO-2(X, V, X), 4(X, V, X)'), { total: 32, blo: 8 });
+  assert.deepEqual(blo('8(2X, V, X)'), { total: 40, blo: 0 });
+  assert.deepEqual(blo('BLO(X, 2(V, X))'), { total: 7, blo: 7 });
   assert.equal(analyzeStitches('BLO'), null);
 });
 
@@ -100,4 +106,25 @@ test('TURN 以 T 開頭但不是中長針：不能讓圈高變成 1.5', () => {
   assert.equal(roundHeightOf('6X, TURN'), 1);
   assert.equal(roundHeightOf('6T, TURN'), 1.5);
   assert.equal(roundHeightOf('DU, 6X'), 1);
+});
+
+test('COLn 讓緊接著的那幾針換色，不影響針數，顏色依針的順序記錄', () => {
+  assert.deepEqual(analyzeStitches('COL2 (3X), 5X').colors, [1, 1, 1, null, null, null, null, null]);
+  assert.equal(countStitches('COL2 (3X), 5X'), 8);
+  assert.deepEqual(analyzeStitches('X, COL3 V, X').colors, [null, 2, 2, null]); // 加針 V 是兩針，同色
+  assert.deepEqual(analyzeStitches('COL1 2(X, V)').colors, [0, 0, 0, 0, 0, 0]);
+});
+
+test('COL 在括號內可以再指定另一個顏色；沒有針的標記不佔位置', () => {
+  assert.deepEqual(analyzeStitches('COL1 (X, COL2 X, X)').colors, [0, 1, 0]);
+  assert.deepEqual(analyzeStitches('COL2 (2X, DU), X').colors, [1, 1, null]);
+  assert.equal(analyzeStitches('2X, DU, 6X').colors.length, 8);
+});
+
+test('COL 的顏色編號只有 1～3，後面必須接針法或括號，否則看不懂', () => {
+  assert.equal(countStitches('COL4 X'), null);
+  assert.equal(countStitches('COL0 X'), null);
+  assert.equal(countStitches('COL2'), null);
+  assert.equal(countStitches('X, COL2'), null);
+  assert.equal(countStitches('COL X'), null);
 });

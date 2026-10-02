@@ -113,7 +113,7 @@ async function openExportModal(item, ctx) {
     `<label>放進哪個分類
        <select name="dest">${destinations.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join('')}</select>
      </label>
-     <p style="margin:0; font-size:13px; color:var(--text-grey);">會在這個分類底下新增一份圖解筆記，每個 P 變成一張部位表。匯出後兩邊各自獨立。</p>`,
+     <p style="margin:0; font-size:13px; color:var(--text-grey);">會在這個分類底下新增一份圖解筆記，每個 P 變成一張部位表，顏色變成針法的文字顏色（之後可以在圖解裡改成實際的顏色）。匯出後兩邊各自獨立。</p>`,
     '匯出',
     async (overlay) => {
       const select = overlay.querySelector('select[name="dest"]');
@@ -201,9 +201,17 @@ function renderList(container, ctx) {
 }
 
 // ---------- 表格（編輯頁與 3D預覽頁共用）----------
+// 編輯時 R 列的色點：點一下切換這一圈的顏色（沒指定 → 色1 → 色2 → 色3 → 沒指定）
+function roundDotButton(row, colorIndex, explicit) {
+  const own = Number.isInteger(row.color) && TEXT_COLORS[row.color] ? row.color : null;
+  const fill = explicit ? TEXT_COLORS[colorIndex].hex : 'transparent';
+  const title = own === null ? '這一圈換色（點一下切換）' : `這一圈：${TEXT_COLORS[own].name}（點一下切換）`;
+  return `<button type="button" class="text-round-dot ${own !== null ? 'is-own' : ''}" data-round-color="${row.id}" title="${title}" style="background:${fill}"></button>`;
+}
+
 function tableHtml(text, editable) {
   const labeled = labelRows(text.rows);
-  const hasColorChange = text.rows.some((r) => r.kind === 'C');
+  const hasColorChange = text.rows.some((r) => r.kind === 'C' || (r.kind === 'R' && Number.isInteger(r.color)));
   const dot = (i) => `<span class="text-dot" style="background:${TEXT_COLORS[i].hex}"></span>`;
   const cell = (row, field, value) =>
     editable
@@ -211,7 +219,7 @@ function tableHtml(text, editable) {
       : esc(value);
 
   const rows = labeled
-    .map(({ row, label, colorIndex }, i) => {
+    .map(({ row, label, colorIndex, explicit }, i) => {
       const del = editable
         ? `<div><button class="del-btn" ${row.kind === 'P' ? 'data-del-part' : 'data-del-row'}="${row.id}" title="${row.kind === 'P' ? `刪除 ${label} 與它底下的列` : '刪除這一列'}" style="position:static;">&#10005;</button></div>`
         : '';
@@ -232,7 +240,13 @@ function tableHtml(text, editable) {
         return `<div class="text-row text-row-c" data-row="${row.id}">${idx}<div class="text-cell-label">${dot(colorIndex)}</div><div>換色：${TEXT_COLORS[colorIndex].name}</div><div></div>${del}</div>`;
       }
       return `<div class="text-row" data-row="${row.id}">${idx}
-        <div class="text-cell-label">${hasColorChange ? dot(colorIndex) : ''}${label}</div>
+        <div class="text-cell-label">${
+          editable
+            ? roundDotButton(row, colorIndex, explicit)
+            : hasColorChange
+              ? dot(colorIndex)
+              : ''
+        }${label}</div>
         <div>${cell(row, 'stitch', row.stitch)}</div>
         <div class="text-cell-total">${cell(row, 'total', row.total)}</div>${del}</div>`;
     })
@@ -291,6 +305,16 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     sel.removeAllRanges();
     sel.addRange(range);
     return cell;
+  };
+
+  // 目前選取的針法文字（沒有選取、或選取不在針法欄裡就回傳 null）
+  const selectedStitchText = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+    const node = sel.getRangeAt(0).commonAncestorContainer;
+    const cell = (node.nodeType === 1 ? node : node.parentElement)?.closest?.('[data-field="stitch"]');
+    const text = sel.toString().trim();
+    return cell && host.contains(cell) && text ? text : null;
   };
 
   // 把標記插入針法欄的游標處（DU）；會觸發 input 事件，原本的存檔與計算照常運作
@@ -404,8 +428,28 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
         addRow(newRow(kind), kind === 'R');
       });
     });
+    // 色點：有選取針法文字 → 把選取的那幾針包成 COLn (…)；沒有選取 → 新增一列換色標記
     host.querySelectorAll('[data-add-color]').forEach((el) => {
-      el.addEventListener('click', () => addRow(newRow('C', Number(el.dataset.addColor)), false));
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); // 不要讓選取消失
+        const n = Number(el.dataset.addColor);
+        const selected = selectedStitchText();
+        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected.trim()})`);
+        else addRow(newRow('C', n), false);
+      });
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('click', (e) => e.preventDefault());
+    });
+    // 每一圈自己的色點
+    host.querySelectorAll('[data-round-color]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const row = text.rows.find((r) => r.id === el.dataset.roundColor);
+        const next = Number.isInteger(row.color) ? row.color + 1 : 0;
+        if (next >= TEXT_COLORS.length) delete row.color;
+        else row.color = next;
+        render();
+        onChange();
+      });
     });
   };
 

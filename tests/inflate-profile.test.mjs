@@ -80,3 +80,18 @@ test('第一圈就是 BLO、或前一圈是起針極點時不折（沒有可折�
   rs[0].blo = true;
   assert.ok(inflateProfile(rs, opts).length > 0);
 });
+
+test('貼圖需要的對應：節點屬於哪一圈、取樣點的間隔，與取樣點總數一致', () => {
+  const rs = rounds([6, 12, 18, 12, 6]);
+  const pts = inflateProfile(rs, opts);
+  assert.equal(pts.sub * (pts.nodeRound.length - 1) + 1, pts.length);
+  // 兩端是收口的極點（歸到相鄰的那一圈），中間每個節點一圈
+  assert.deepEqual(pts.nodeRound, [0, 0, 1, 2, 3, 4, 4]);
+});
+
+test('有 BLO 折點分段時，節點與取樣點的對應也一致', () => {
+  const rs = rounds([6, 12, 18, 24, 24, 24, 24, 24]);
+  rs[4].blo = true;
+  const pts = inflateProfile(rs, opts);
+  assert.equal(pts.sub * (pts.nodeRound.length - 1) + 1, pts.length);
+});

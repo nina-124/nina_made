@@ -36,7 +36,7 @@ test('3D 預覽用：每個 R 帶著當下的顏色', () => {
   assert.deepEqual(tables[0].rows.map((r) => r.color), [TEXT_COLORS[0].hex, TEXT_COLORS[1].hex]);
 });
 
-import { insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../js/text-rows.js';
+import { insertInGroup, removeGroup, appendTurn, insertAfterRow, colorizeStitchHtml } from '../js/text-rows.js';
 
 const withId = (row, id) => ({ ...row, id });
 
@@ -72,4 +72,46 @@ test('TURN 換下一圈：新的一圈放在目前這圈的正下方，後面的
   insertAfterRow(rows, 'a', withId(R(), 'new'));
   assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new', 'b']);
   assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2', 'R3']);
+});
+
+test('單獨一圈換色：R 列自己指定的顏色優先，不影響前後的圈', () => {
+  const colors = labelRows([P(), R(), { ...R(), color: 2 }, R()]).map((l) => l.colorIndex);
+  assert.deepEqual(colors, [0, 0, 2, 0]);
+});
+
+test('單獨一圈換色不會打斷前面的換色：後面的圈仍沿用換色標記的顏色', () => {
+  const colors = labelRows([P(), C(1), R(), { ...R(), color: 2 }, R()]).map((l) => l.colorIndex);
+  assert.deepEqual(colors, [0, 1, 1, 2, 1]);
+});
+
+test('匯出到圖解：單針換色變成那幾針的文字顏色，標記本身拿掉', () => {
+  assert.equal(colorizeStitchHtml('COL2 (3X), 5X'), '<span style="color:#a9c98f">(3X)</span>, 5X');
+  assert.equal(colorizeStitchHtml('X, COL3 V, X'), 'X, <span style="color:#e9d28a">V</span>, X');
+  assert.equal(colorizeStitchHtml('COL1 2(X, V)'), '<span style="color:#e7b7a3">2(X, V)</span>');
+  assert.equal(colorizeStitchHtml('6X'), '6X');
+});
+
+test('匯出到圖解：整圈換色讓整段針法文字用該色，其中單針換色再疊在上面', () => {
+  assert.equal(colorizeStitchHtml('6X', '#a9c98f'), '<span style="color:#a9c98f">6X</span>');
+  assert.equal(
+    colorizeStitchHtml('2X, COL3 X', '#a9c98f'),
+    '<span style="color:#a9c98f">2X, <span style="color:#e9d28a">X</span></span>'
+  );
+});
+
+test('匯出到圖解：沒有指定過顏色的圈不上色；有換色標記或單獨換色的圈才上色', () => {
+  const rows = [P(), R('6X', '6'), C(1), R('6V', '12'), { ...R('8X', '8'), color: 2 }];
+  const stitches = textRowsToTables(rows)[0].rows.map((r) => r.stitch);
+  assert.equal(stitches[0], '6X'); // 還沒換色，維持原樣
+  assert.equal(stitches[1], '<span style="color:#a9c98f">6V</span>');
+  assert.equal(stitches[2], '<span style="color:#e9d28a">8X</span>');
+});
+
+test('匯出到圖解：文字裡的 < > & 要轉義，不能被當成標籤', () => {
+  assert.equal(colorizeStitchHtml('2X <b>'), '2X &lt;b&gt;');
+});
+
+test('3D 預覽用的版本保留原文（含 COL 標記）與每圈顏色', () => {
+  const rows = [P(), R('COL2 (3X), 5X', '8')];
+  assert.equal(textRowsToTables(rows, { withColor: true })[0].rows[0].stitch, 'COL2 (3X), 5X');
 });

@@ -1068,3 +1068,14 @@ body.ck-open .main { padding-bottom: 360px; }
   }
   .diagram-table { padding: 10px; }
 }
+.text-round-dot {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  padding: 0;
+  border: 1.5px dashed rgba(54, 75, 53, 0.45);
+  border-radius: 50%;
+  vertical-align: -1px;
+  cursor: pointer;
+}
+.text-round-dot.is-own { border-style: solid; border-color: rgba(54, 75, 53, 0.7); }

@@ -3,6 +3,7 @@
 
 import { analyzeStitches, roundHeightOf } from '../stitch-count.js';
 import { inflateProfile } from '../inflate-profile.js';
+import { TEXT_COLORS } from '../text-rows.js';
 
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
 const ROUND_HEIGHT = 1; // 短針一圈的高度；其他針法依 roundHeightOf 的倍數放大
@@ -43,10 +44,14 @@ export function analyzeTable(table) {
 
     let count = null;
     let blo = false; // 整圈都挑後半針（BLO）：在 3D 預覽折出轉角
+    let cells = null; // 每一針的顏色（COLn 標記），沒有指定就維持 null
     if (stitchText) {
       const analysis = analyzeStitches(stitchText);
       count = analysis === null ? null : analysis.total;
       blo = analysis !== null && analysis.total > 0 && analysis.blo === analysis.total;
+      if (analysis !== null && analysis.colors.some((c) => c !== null)) {
+        cells = analysis.colors.map((c) => (c === null ? null : parseInt(TEXT_COLORS[c].hex.slice(1), 16)));
+      }
       if (count === null) {
         warnings.push(`第 ${label} 圈：看不懂針法或括號沒配對，改用總針數${written !== null ? '' : '（沒填，已略過）'}`);
       } else if (written !== null && written !== count) {
@@ -59,7 +64,8 @@ export function analyzeTable(table) {
 
     const height = stitchText ? roundHeightOf(stitchText) : previousHeight;
     const color = /^#[0-9a-f]{6}$/i.test(row.color || '') ? parseInt(row.color.slice(1), 16) : null; // 圖解文本的換色
-    rounds.push({ count, repeat: parseRoundSpan(row.round), height, color, blo });
+    // 每針顏色的數量要和總針數一致才用（總針數是手填、針法又看不懂時就沒有對應）
+    rounds.push({ count, repeat: parseRoundSpan(row.round), height, color, blo, cells: cells && cells.length === count ? cells : null });
     previous = count;
     previousHeight = height;
   }
@@ -69,6 +75,44 @@ export function analyzeTable(table) {
 // 每圈一個 (半徑, 高度, 顏色)，繞 Y 軸旋轉成形狀；沒指定顏色的圈用 fallbackColor
 function buildProfile(rounds, stitchWidth, roundHeight, fallbackColor) {
   return inflateProfile(rounds, { stitchWidth, roundHeight, closeThreshold: CLOSE_THRESHOLD, fallbackColor });
+}
+
+// 把每一圈（與每一針）的顏色畫成貼圖：橫向是圓周（一圈有幾針就切幾格），縱向是由下往上的每一圈。
+// 一針的寬度等於圈高，所以單針換色在表面上會是一塊方格，邊緣清楚、不做漸層。
+function buildColorTexture(THREE, profile, rounds, fallbackColor) {
+  const bands = profile.nodeRound.length - 1; // 每兩個節點之間是一圈
+  const cellPx = 16;
+  const width = Math.min(Math.max(Math.max(...rounds.map((r) => r.count)) * cellPx, 256), 4096);
+  const height = Math.min(Math.max(bands * cellPx, 64), 4096);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  const css = (n) => `#${n.toString(16).padStart(6, '0')}`;
+  ctx.fillStyle = css(rounds[0].color ?? fallbackColor);
+  ctx.fillRect(0, 0, width, height);
+  for (let j = 1; j <= bands; j++) {
+    const round = rounds[profile.nodeRound[j]];
+    const y0 = Math.round((1 - j / bands) * height); // 貼圖的上方是 v = 1
+    const y1 = Math.round((1 - (j - 1) / bands) * height);
+    const base = round.color ?? fallbackColor;
+    ctx.fillStyle = css(base);
+    ctx.fillRect(0, y0, width, y1 - y0);
+    if (!round.cells) continue;
+    for (let k = 0; k < round.count; k++) {
+      if (round.cells[k] === null) continue;
+      const x0 = Math.round((k / round.count) * width);
+      const x1 = Math.round(((k + 1) / round.count) * width);
+      ctx.fillStyle = css(round.cells[k]);
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  return texture;
 }
 
 let active = null; // 同時只保留一個預覽，換頁或重繪時先釋放舊的 WebGL
@@ -128,6 +172,7 @@ export async function mountDiagramPreview(host, getTables) {
   function clearGroup() {
     for (const mesh of [...group.children]) {
       mesh.geometry.dispose();
+      mesh.material.map?.dispose();
       mesh.material.dispose();
       group.remove(mesh);
     }
@@ -180,16 +225,8 @@ export async function mountDiagramPreview(host, getTables) {
         profile.map(([r, y]) => new THREE.Vector2(r, y)),
         64
       );
-      // LatheGeometry 的頂點依「每個角度一整排剖面點」排列，所以第 k 個頂點的顏色就是剖面第 (k % 點數) 點的顏色
-      const colors = new Float32Array(geometry.attributes.position.count * 3);
-      const tmp = new THREE.Color();
-      for (let k = 0; k < geometry.attributes.position.count; k++) {
-        tmp.set(profile[k % profile.length][2]);
-        colors.set([tmp.r, tmp.g, tmp.b], k * 3);
-      }
-      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       const material = new THREE.MeshStandardMaterial({
-        vertexColors: true,
+        map: buildColorTexture(THREE, profile, a.rounds, partColor),
         roughness: 0.9,
         side: THREE.DoubleSide,
       });

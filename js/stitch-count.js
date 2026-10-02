@@ -2,6 +2,7 @@
 // 規則：數字在針法或括號前面代表乘法（2X、3(X,V)）；( ) [ ] { } 與全形括號都只是分組；
 // BLO（後半針）、FLO（前半針）寫在數字或針法前面，可接 -，例如 BLO8(X,V,X)、BLO-2(X,V,X)：只影響入針的位置，不影響針數；
 // D 加數字（D2）表示從起針鎖針的倒數第 n 針開始鉤，只影響入針位置，不影響針數；
+// COL1～COL3 寫在針法或括號前面（COL2 3X、COL3 (X,V)），讓那幾針用三個換色之一，不影響針數；
 // DU（斷線，下一針從斷線處的下一針繼續）、TURN（反面）是標記，不算針；
 // 以逗號、頓號或空白分隔；CH、SL、環起不算針，其餘每針算 1，加針類算 2、三加類算 3。
 // 遇到不認得的針法或括號不成對時回傳 null，由呼叫端決定如何顯示，避免算出錯的數字。
@@ -26,6 +27,8 @@ function stitchHeight(name) {
 }
 
 // 挑線方式的修飾詞：後面緊接著的那組（或那個針法）改從上一圈的半針入針
+const COLOR_COUNT = 3; // COL1～COL3，對應圖解文本的三個換色
+
 const LOOP_MODIFIERS = new Set(['BLO', 'FLO']);
 
 const OPEN = { '(': ')', '（': '）', '[': ']', '［': '］', '【': '】', '{': '}', '｛': '｝' };
@@ -40,22 +43,29 @@ function tokenize(text) {
   return tokens;
 }
 
-// 回傳 { total, blo }：total 是這一圈的總針數，blo 是其中挑後半針（BLO）入針的針數；看不懂時回傳 null
+// 回傳 { total, blo, colors }；看不懂時回傳 null
+//   total：這一圈的總針數；blo：其中挑後半針（BLO）入針的針數
+//   colors：長度等於 total，依針的順序記錄每一針的顏色（0～2，沒指定為 null）
 export function analyzeStitches(text) {
   const tokens = tokenize(String(text || ''));
   let pos = 0;
+  const startsItem = (tk) => tk !== undefined && (/^\d+$/.test(tk) || OPEN[tk] || tk.toUpperCase() in STITCH_COUNT);
 
-  // 解析到遇到對應的結尾括號（或字串結束）為止，回傳 [針數, BLO 針數]；inBlo 表示整段都在 BLO 裡
-  function parseSequence(closer, inBlo) {
+  // 解析到遇到對應的結尾括號（或字串結束）為止，回傳 [針數, BLO 針數, 每針顏色]
+  // inBlo / inColor：整段都在 BLO / 同一個顏色裡
+  function parseSequence(closer, inBlo, inColor) {
     let sum = 0;
     let bloSum = 0;
+    const colors = [];
     let pendingBlo = false; // 前一個修飾詞是 BLO，套用在緊接著的那一項
+    let pendingColor = null; // 前一個修飾詞是 COLn，套用在緊接著的那一項
+    const pending = () => pendingBlo || pendingColor !== null;
     while (pos < tokens.length) {
       const t = tokens[pos];
-      if (t === closer) return pendingBlo ? null : [sum, bloSum];
+      if (t === closer) return pending() ? null : [sum, bloSum, colors];
       if (CLOSE.has(t)) return null;
       if (/^[,，、]$/.test(t)) {
-        if (pendingBlo) return null;
+        if (pending()) return null;
         pos++;
         continue;
       }
@@ -64,7 +74,7 @@ export function analyzeStitches(text) {
       if (t.toUpperCase() === 'D' && /^\d+$/.test(tokens[pos + 1] ?? '')) {
         pos += 2;
         const after = tokens[pos];
-        if (after === undefined || after === closer || CLOSE.has(after) || pendingBlo) return null;
+        if (after === undefined || after === closer || CLOSE.has(after) || pending()) return null;
         continue;
       }
 
@@ -72,9 +82,20 @@ export function analyzeStitches(text) {
         pos++;
         if (tokens[pos] === '-') pos++;
         // 修飾詞後面一定要接數字、括號或針法
-        const after = tokens[pos];
-        if (after === undefined || !(/^\d+$/.test(after) || OPEN[after] || after.toUpperCase() in STITCH_COUNT)) return null;
+        if (!startsItem(tokens[pos])) return null;
         pendingBlo = t.toUpperCase() === 'BLO';
+        continue;
+      }
+
+      // COL2：緊接著的那一針（或那一組括號）用顏色 2；顏色只有 1～COLOR_COUNT
+      if (t.toUpperCase() === 'COL') {
+        pos++;
+        if (tokens[pos] === '-') pos++;
+        const n = tokens[pos];
+        if (!/^\d+$/.test(n ?? '') || Number(n) < 1 || Number(n) > COLOR_COUNT) return null;
+        pos++;
+        if (!startsItem(tokens[pos])) return null;
+        pendingColor = Number(n) - 1;
         continue;
       }
 
@@ -87,30 +108,35 @@ export function analyzeStitches(text) {
       if (next === undefined) return null;
 
       const blo = inBlo || pendingBlo;
+      const color = pendingColor ?? inColor;
       pendingBlo = false;
+      pendingColor = null;
       let value;
       let bloValue;
+      let itemColors;
       if (OPEN[next]) {
         pos++;
-        const inner = parseSequence(OPEN[next], blo);
+        const inner = parseSequence(OPEN[next], blo, color);
         if (inner === null || tokens[pos] !== OPEN[next]) return null;
         pos++;
-        [value, bloValue] = inner;
+        [value, bloValue, itemColors] = inner;
       } else {
         const per = STITCH_COUNT[next.toUpperCase()];
         if (per === undefined) return null;
         value = per;
         bloValue = blo ? per : 0;
+        itemColors = Array(per).fill(color);
         pos++;
       }
       sum += times * value;
       bloSum += times * bloValue;
+      for (let k = 0; k < times; k++) colors.push(...itemColors);
     }
-    return closer || pendingBlo ? null : [sum, bloSum];
+    return closer || pending() ? null : [sum, bloSum, colors];
   }
 
-  const result = parseSequence(null, false);
-  return result === null ? null : { total: result[0], blo: result[1] };
+  const result = parseSequence(null, false, null);
+  return result === null ? null : { total: result[0], blo: result[1], colors: result[2] };
 }
 
 export function countStitches(text) {

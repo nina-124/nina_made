@@ -72,7 +72,7 @@ export function inflate(rmax, seg, closedStart, closedEnd, pin = null) {
 
 // Catmull-Rom 平滑；顏色取離原始點較近的那一個
 function smooth(points, colors, sub) {
-  if (points.length < 3) return points.map((p, i) => [p[0], p[1], colors[i]]);
+  if (points.length < 2) return points.map((p, i) => [p[0], p[1], colors[i]]);
   const P = [points[0], ...points, points[points.length - 1]];
   const out = [];
   const f = (a, b, c, d, t) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3);
@@ -92,20 +92,22 @@ function smooth(points, colors, sub) {
 }
 
 // rounds：[{ count, repeat, height, color, blo }]；回傳 [[半徑, 高度, 顏色]]，由下往上
+// 回傳的陣列另外帶兩個屬性，給貼圖用：nodeRound[j] 是第 j 個節點屬於 rounds 的第幾圈，
+// sub 是每兩個節點之間插了幾個取樣點（節點 j 在第 j * sub 個取樣點，v 座標 = j / (節點數 - 1)）
 // blo 為 true 的圈（整圈都挑後半針）會在「前一圈」的位置折出 90° 轉角
 export function inflateProfile(rounds, { stitchWidth, roundHeight, closeThreshold, fallbackColor }) {
   const nodes = [];
   const closedStart = rounds[0].count <= closeThreshold;
   const last = rounds[rounds.length - 1];
   const closedEnd = last.count <= closeThreshold;
-  if (closedStart) nodes.push({ rmax: 0, seg: roundHeight * rounds[0].height, color: rounds[0].color ?? fallbackColor });
-  for (const { count, repeat, height, color, blo } of rounds) {
+  if (closedStart) nodes.push({ rmax: 0, seg: roundHeight * rounds[0].height, color: rounds[0].color ?? fallbackColor, round: 0 });
+  rounds.forEach(({ count, repeat, height, color, blo }, roundIndex) => {
     for (let k = 0; k < repeat; k++) {
       if (blo && nodes.length) nodes[nodes.length - 1].crease = true;
-      nodes.push({ rmax: (count * stitchWidth) / (2 * Math.PI), seg: roundHeight * height, color: color ?? fallbackColor });
+      nodes.push({ rmax: (count * stitchWidth) / (2 * Math.PI), seg: roundHeight * height, color: color ?? fallbackColor, round: roundIndex });
     }
-  }
-  if (closedEnd) nodes.push({ rmax: 0, seg: roundHeight * last.height, color: last.color ?? fallbackColor });
+  });
+  if (closedEnd) nodes.push({ rmax: 0, seg: roundHeight * last.height, color: last.color ?? fallbackColor, round: rounds.length - 1 });
 
   const n = nodes.length;
   const rmax = nodes.map((nd) => nd.rmax);
@@ -139,5 +141,8 @@ export function inflateProfile(rounds, { stitchWidth, roundHeight, closeThreshol
     start = end;
   }
   const lo = Math.min(...out.map((p) => p[1]));
-  return out.map(([r, y, c]) => [r, y - lo, c]);
+  const profile = out.map(([r, y, c]) => [r, y - lo, c]);
+  profile.nodeRound = nodes.map((nd) => nd.round);
+  profile.sub = sub;
+  return profile;
 }
