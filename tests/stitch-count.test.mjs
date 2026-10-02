@@ -1,7 +1,7 @@
 // 這些案例來自使用者實際的圖解寫法與她認定的總針數；規則改動時它們應該失敗。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { countStitches, roundHeightOf } from '../js/stitch-count.js';
+import { countStitches, roundHeightOf, analyzeStitches } from '../js/stitch-count.js';
 
 test('使用者範例一：括號前的數字是重複，CH 不算針，加針算 2', () => {
   assert.equal(countStitches('2CH, [3(X, V), X], 2X,  [3(X, V), X], 2X'), 24);
@@ -65,4 +65,12 @@ test('BLO 後面沒有接東西時視為看不懂，不亂算', () => {
   assert.equal(countStitches('BLO-'), null);
   assert.equal(countStitches('6X, BLO'), null);
   assert.equal(countStitches('BLO, 6X'), null);
+});
+
+test('BLO 針數：整圈 BLO 與只有部分組別 BLO 要能分辨', () => {
+  assert.deepEqual(analyzeStitches('BLO8(X, V, X)'), { total: 32, blo: 32 });
+  assert.deepEqual(analyzeStitches('2(X, V, X), BLO-2(X, V, X), 4(X, V, X)'), { total: 32, blo: 8 });
+  assert.deepEqual(analyzeStitches('8(2X, V, X)'), { total: 40, blo: 0 });
+  assert.deepEqual(analyzeStitches('BLO(X, 2(V, X))'), { total: 7, blo: 7 });
+  assert.equal(analyzeStitches('BLO'), null);
 });

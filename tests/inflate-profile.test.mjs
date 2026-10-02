@@ -45,3 +45,38 @@ test('顏色跟著圈走', () => {
   assert.equal(pts[0][2], 0xff0000);
   assert.equal(pts[pts.length - 1][2], 0x0000ff);
 });
+
+// 轉角：相鄰兩段的方向差（度）的最大值
+const sharpestTurn = (pts) => {
+  let max = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0]);
+    const b = Math.atan2(pts[i + 1][1] - pts[i][1], pts[i + 1][0] - pts[i][0]);
+    let d = Math.abs(b - a) * (180 / Math.PI);
+    if (d > 180) d = 360 - d;
+    max = Math.max(max, d);
+  }
+  return max;
+};
+
+test('BLO 的那一圈會把布面折出轉角；沒有 BLO 時填充會把轉角磨圓', () => {
+  const cup = [6, 12, 18, 24, 24, 24, 24, 24];
+  const withBlo = rounds(cup);
+  withBlo[4].blo = true; // 第 5 圈整圈 BLO：折點在第 4 圈
+  assert.ok(sharpestTurn(inflateProfile(withBlo, opts)) > 60);
+  assert.ok(sharpestTurn(inflateProfile(rounds(cup), opts)) < 45);
+});
+
+test('BLO 折出轉角後，側壁是直立的（半徑不再變）', () => {
+  const withBlo = rounds([6, 12, 18, 24, 24, 24, 24, 24]);
+  withBlo[4].blo = true;
+  const pts = inflateProfile(withBlo, opts);
+  const wallTop = pts.slice(-6).map((p) => p[0]);
+  assert.ok(Math.max(...wallTop) - Math.min(...wallTop) < 0.05);
+});
+
+test('第一圈就是 BLO、或前一圈是起針極點時不折（沒有可折的位置）', () => {
+  const rs = rounds([6, 12, 18]);
+  rs[0].blo = true;
+  assert.ok(inflateProfile(rs, opts).length > 0);
+});

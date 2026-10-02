@@ -37,18 +37,25 @@ function tokenize(text) {
   return tokens;
 }
 
-export function countStitches(text) {
+// 回傳 { total, blo }：total 是這一圈的總針數，blo 是其中挑後半針（BLO）入針的針數；看不懂時回傳 null
+export function analyzeStitches(text) {
   const tokens = tokenize(String(text || ''));
   let pos = 0;
 
-  // sequence 解析到遇到對應的結尾括號（或字串結束）為止
-  function parseSequence(closer) {
+  // 解析到遇到對應的結尾括號（或字串結束）為止，回傳 [針數, BLO 針數]；inBlo 表示整段都在 BLO 裡
+  function parseSequence(closer, inBlo) {
     let sum = 0;
+    let bloSum = 0;
+    let pendingBlo = false; // 前一個修飾詞是 BLO，套用在緊接著的那一項
     while (pos < tokens.length) {
       const t = tokens[pos];
-      if (t === closer) return sum;
+      if (t === closer) return pendingBlo ? null : [sum, bloSum];
       if (CLOSE.has(t)) return null;
-      if (/^[,，、]$/.test(t)) { pos++; continue; }
+      if (/^[,，、]$/.test(t)) {
+        if (pendingBlo) return null;
+        pos++;
+        continue;
+      }
 
       if (LOOP_MODIFIERS.has(t.toUpperCase())) {
         pos++;
@@ -56,6 +63,7 @@ export function countStitches(text) {
         // 修飾詞後面一定要接數字、括號或針法
         const after = tokens[pos];
         if (after === undefined || !(/^\d+$/.test(after) || OPEN[after] || after.toUpperCase() in STITCH_COUNT)) return null;
+        pendingBlo = t.toUpperCase() === 'BLO';
         continue;
       }
 
@@ -67,25 +75,36 @@ export function countStitches(text) {
       const next = tokens[pos];
       if (next === undefined) return null;
 
+      const blo = inBlo || pendingBlo;
+      pendingBlo = false;
       let value;
+      let bloValue;
       if (OPEN[next]) {
         pos++;
-        value = parseSequence(OPEN[next]);
-        if (value === null || tokens[pos] !== OPEN[next]) return null;
+        const inner = parseSequence(OPEN[next], blo);
+        if (inner === null || tokens[pos] !== OPEN[next]) return null;
         pos++;
+        [value, bloValue] = inner;
       } else {
         const per = STITCH_COUNT[next.toUpperCase()];
         if (per === undefined) return null;
         value = per;
+        bloValue = blo ? per : 0;
         pos++;
       }
       sum += times * value;
+      bloSum += times * bloValue;
     }
-    return closer ? null : sum;
+    return closer || pendingBlo ? null : [sum, bloSum];
   }
 
-  const total = parseSequence(null);
-  return total;
+  const result = parseSequence(null, false);
+  return result === null ? null : { total: result[0], blo: result[1] };
+}
+
+export function countStitches(text) {
+  const result = analyzeStitches(text);
+  return result === null ? null : result.total;
 }
 
 // 這一圈的高度（短針 = 1）：取用到的針法中最高的；沒有可辨識的針法時視為 1

@@ -1,7 +1,7 @@
 // 圖解 3D 預覽（簡化版）：依「針法」算出每圈針數，每圈畫成一個圓環往上疊成旋轉體。
 // 圈周長 ∝ 針數，所以針數變多就變寬；不模擬單針位置，也不處理多部件合併（腿接身體會畫成突然變寬）。
 
-import { countStitches, roundHeightOf } from '../stitch-count.js';
+import { analyzeStitches, roundHeightOf } from '../stitch-count.js';
 import { inflateProfile } from '../inflate-profile.js';
 
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
@@ -42,8 +42,11 @@ export function analyzeTable(table) {
     const stitchText = toPlainText(row.stitch).trim();
 
     let count = null;
+    let blo = false; // 整圈都挑後半針（BLO）：在 3D 預覽折出轉角
     if (stitchText) {
-      count = countStitches(stitchText);
+      const analysis = analyzeStitches(stitchText);
+      count = analysis === null ? null : analysis.total;
+      blo = analysis !== null && analysis.total > 0 && analysis.blo === analysis.total;
       if (count === null) {
         warnings.push(`第 ${label} 圈：看不懂針法或括號沒配對，改用總針數${written !== null ? '' : '（沒填，已略過）'}`);
       } else if (written !== null && written !== count) {
@@ -56,7 +59,7 @@ export function analyzeTable(table) {
 
     const height = stitchText ? roundHeightOf(stitchText) : previousHeight;
     const color = /^#[0-9a-f]{6}$/i.test(row.color || '') ? parseInt(row.color.slice(1), 16) : null; // 圖解文本的換色
-    rounds.push({ count, repeat: parseRoundSpan(row.round), height, color });
+    rounds.push({ count, repeat: parseRoundSpan(row.round), height, color, blo });
     previous = count;
     previousHeight = height;
   }
