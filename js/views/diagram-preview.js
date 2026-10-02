@@ -2,6 +2,7 @@
 // 圈周長 ∝ 針數，所以針數變多就變寬；不模擬單針位置，也不處理多部件合併（腿接身體會畫成突然變寬）。
 
 import { countStitches, roundHeightOf } from '../stitch-count.js';
+import { inflateProfile } from '../inflate-profile.js';
 
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
 const ROUND_HEIGHT = 1; // 短針一圈的高度；其他針法依 roundHeightOf 的倍數放大
@@ -63,20 +64,7 @@ export function analyzeTable(table) {
 
 // 每圈一個 (半徑, 高度, 顏色)，繞 Y 軸旋轉成形狀；沒指定顏色的圈用 fallbackColor
 function buildProfile(rounds, stitchWidth, roundHeight, fallbackColor) {
-  const points = [];
-  let y = 0;
-  const first = rounds[0].count;
-  if (first <= CLOSE_THRESHOLD) points.push([0, 0, rounds[0].color ?? fallbackColor]);
-  for (const { count, repeat, height, color } of rounds) {
-    const r = (count * stitchWidth) / (2 * Math.PI);
-    for (let k = 0; k < repeat; k++) {
-      y += roundHeight * height;
-      points.push([r, y, color ?? fallbackColor]);
-    }
-  }
-  const last = rounds[rounds.length - 1];
-  if (last.count <= CLOSE_THRESHOLD) points.push([0, y + roundHeight * last.height * 0.6, last.color ?? fallbackColor]);
-  return points;
+  return inflateProfile(rounds, { stitchWidth, roundHeight, closeThreshold: CLOSE_THRESHOLD, fallbackColor });
 }
 
 let active = null; // 同時只保留一個預覽，換頁或重繪時先釋放舊的 WebGL

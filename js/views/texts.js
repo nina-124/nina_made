@@ -242,21 +242,30 @@ function tableHtml(text, editable) {
 
 // ---------- 可編輯的表格＋工具鍵（編輯頁與 3D預覽頁共用）----------
 // onChange：表格內容有任何變動（打字、加列、刪列）都會呼叫，3D預覽頁用它即時更新預覽
-function mountTableEditor(host, text, { onChange = () => {} } = {}) {
+function mountTableEditor(host, text, { compact = false, onChange = () => {} } = {}) {
   const render = () => {
     host.innerHTML = `
       <div class="text-editor">
         <div class="text-table-wrap">${tableHtml(text, editMode)}</div>
         ${
           editMode
-            ? `<div class="text-tools">
-                <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
-                <button class="btn btn-secondary text-tool" data-add="R">R:自動序號</button>
-                ${TEXT_COLORS.map(
-                  (c, i) =>
-                    `<button class="btn btn-secondary text-tool" data-add-color="${i}"><span class="text-dot" style="background:${c.hex}"></span>換色 ${c.name}</button>`
-                ).join('')}
-              </div>`
+            ? compact
+              ? `<div class="text-tools text-tools-compact">
+                  <button class="btn btn-secondary text-tool" data-add="P" title="新增 P（自動序號）">P</button>
+                  <button class="btn btn-secondary text-tool" data-add="R" title="新增 R（自動序號）">R</button>
+                  ${TEXT_COLORS.map(
+                    (c, i) =>
+                      `<button type="button" class="text-mini-dot text-color-btn" data-add-color="${i}" title="換色：${c.name}" style="background:${c.hex}"></button>`
+                  ).join('')}
+                </div>`
+              : `<div class="text-tools">
+                  <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
+                  <button class="btn btn-secondary text-tool" data-add="R">R:自動序號</button>
+                  ${TEXT_COLORS.map(
+                    (c, i) =>
+                      `<button class="btn btn-secondary text-tool" data-add-color="${i}"><span class="text-dot" style="background:${c.hex}"></span>換色 ${c.name}</button>`
+                  ).join('')}
+                </div>`
             : ''
         }
       </div>`;
@@ -394,6 +403,7 @@ export async function renderViewerView(container, path, ctx) {
     textRowsToTables(text.rows, { withColor: true })
   );
   mountTableEditor(container.querySelector('#viewer-table'), text, {
+    compact: true,
     onChange: () => previewReady.then((p) => p.refresh()),
   });
   bindEditToggle(container, ctx, `更新圖解文本「${text.name}」`, () => renderViewerView(container, path, ctx));
