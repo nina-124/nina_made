@@ -1,5 +1,6 @@
 // 計算圖解「針法」欄的總針數。
 // 規則：數字在針法或括號前面代表乘法（2X、3(X,V)）；( ) [ ] { } 與全形括號都只是分組；
+// BLO（後半針）、FLO（前半針）寫在數字或針法前面，可接 -，例如 BLO8(X,V,X)、BLO-2(X,V,X)：只影響入針的位置，不影響針數；
 // 以逗號、頓號或空白分隔；CH、環起不算針，其餘每針算 1，加針類算 2、三加類算 3。
 // 遇到不認得的針法或括號不成對時回傳 null，由呼叫端決定如何顯示，避免算出錯的數字。
 
@@ -20,6 +21,9 @@ function stitchHeight(name) {
   const hit = HEIGHT_BY_PREFIX.find(([prefix]) => name.startsWith(prefix));
   return hit ? hit[1] : 1;
 }
+
+// 挑線方式的修飾詞：後面緊接著的那組（或那個針法）改從上一圈的半針入針
+const LOOP_MODIFIERS = new Set(['BLO', 'FLO']);
 
 const OPEN = { '(': ')', '（': '）', '[': ']', '［': '］', '【': '】', '{': '}', '｛': '｝' };
 const CLOSE = new Set(Object.values(OPEN));
@@ -45,6 +49,15 @@ export function countStitches(text) {
       if (t === closer) return sum;
       if (CLOSE.has(t)) return null;
       if (/^[,，、]$/.test(t)) { pos++; continue; }
+
+      if (LOOP_MODIFIERS.has(t.toUpperCase())) {
+        pos++;
+        if (tokens[pos] === '-') pos++;
+        // 修飾詞後面一定要接數字、括號或針法
+        const after = tokens[pos];
+        if (after === undefined || !(/^\d+$/.test(after) || OPEN[after] || after.toUpperCase() in STITCH_COUNT)) return null;
+        continue;
+      }
 
       let times = 1;
       if (/^\d+$/.test(t)) {

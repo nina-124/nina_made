@@ -7,9 +7,10 @@ const STITCHES = [
   ['TV', '中加'], ['TA', '中減'], ['FV', '長加'], ['FA', '長減'], ['EV', '長長加'], ['EA', '長長減'],
   ['TW', '中3加'], ['TM', '中3減'], ['FW', '長3加'], ['FM', '長3減'], ['EW', '長長3加'], ['EM', '長長3減'],
   ['TCA', '中棗3'], ['TQ', '中棗4'], ['FCA', '長棗3'], ['PF', '泡芙5長'], ['TG', '中爆5'], ['FG', '長爆5'], ['EG', '長長爆5'],
+  ['BLO', '後半針'], ['FLO', '前半針'],
 ];
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-const SYMBOLS = ['(', ')', '[', ']', '{', '}', ','];
+const SYMBOLS = ['(', ')', '[', ']', '{', '}', ',', '-'];
 
 const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 const isStitchCell = (el) => el instanceof Element && el.matches('[contenteditable][data-field="stitch"]');

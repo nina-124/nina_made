@@ -945,7 +945,7 @@ a { color: inherit; }
   overflow-y: auto;
 }
 .ck-body[hidden] { display: none; }
-.ck-foot { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.ck-foot { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
 .ck-key {
   display: flex;
   flex-direction: column;

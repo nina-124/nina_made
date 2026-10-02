@@ -50,3 +50,19 @@ test('圈高以短針為 1，混用針法取最高的，沒有針法時為 1', (
   assert.equal(roundHeightOf('4CH'), 1);
   assert.equal(roundHeightOf(''), 1);
 });
+
+test('BLO/FLO 只影響入針位置，不影響針數（使用者的寫法）', () => {
+  assert.equal(countStitches('BLO8(X, V, X)'), 32);
+  assert.equal(countStitches('BLO-8(X, V, X)'), 32);
+  assert.equal(countStitches('2(X, V, X), BLO-2(X, V, X), 4(X, V, X)'), 32);
+  assert.equal(countStitches('8(2X, V, X)'), 40);
+  assert.equal(countStitches('FLO6X'), 6);
+  assert.equal(countStitches('blo-6X'), 6);
+});
+
+test('BLO 後面沒有接東西時視為看不懂，不亂算', () => {
+  assert.equal(countStitches('BLO'), null);
+  assert.equal(countStitches('BLO-'), null);
+  assert.equal(countStitches('6X, BLO'), null);
+  assert.equal(countStitches('BLO, 6X'), null);
+});

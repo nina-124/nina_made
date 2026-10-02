@@ -7,6 +7,7 @@ import { inflateProfile } from '../inflate-profile.js';
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
 const ROUND_HEIGHT = 1; // 短針一圈的高度；其他針法依 roundHeightOf 的倍數放大
 const CLOSE_THRESHOLD = 8; // 首/末圈針數不超過這個值就當作收口成一點（圓環起針、最後收針）
+const PART_SLOT = 30; // 「全部」檢視時每個部位固定佔的寬度；位置只看順序，改一個部位不會推動其他部位
 const PART_COLORS = [0xe7b7a3, 0xa9c98f, 0xe9d28a, 0x9fc3d6, 0xc9a9d6, 0xd6a39f];
 
 function toPlainText(html) {
@@ -167,13 +168,11 @@ export async function mountDiagramPreview(host, getTables) {
 
 
     clearGroup();
-    let cursorX = 0;
     analyzed.forEach((a, i) => {
       if (selected !== 'all' && selected !== i) return;
       if (!a.rounds.length) return;
       const partColor = PART_COLORS[i % PART_COLORS.length];
       const profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT, partColor);
-      const maxR = Math.max(...profile.map((p) => p[0]));
       const geometry = new THREE.LatheGeometry(
         profile.map(([r, y]) => new THREE.Vector2(r, y)),
         64
@@ -192,17 +191,17 @@ export async function mountDiagramPreview(host, getTables) {
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.x = cursorX + maxR;
-      cursorX += maxR * 2 + STITCH_WIDTH * 2;
+      mesh.position.x = selected === 'all' ? i * PART_SLOT : 0;
       group.add(mesh);
     });
 
     msgEl.textContent = group.children.length ? '' : '填寫「針法」後，這裡會顯示預覽';
     warningsEl.innerHTML = '';
-    analyzed.forEach((a) => {
+    analyzed.forEach((a, i) => {
+      if (selected !== 'all' && selected !== i) return; // 單獨檢視某個部位時，不顯示其他部位的警告
       a.warnings.forEach((w) => {
         const li = document.createElement('li');
-        li.textContent = `${analyzed.length > 1 ? `${a.part}・` : ''}${w}`;
+        li.textContent = `${selected === 'all' && analyzed.length > 1 ? `${a.part}・` : ''}${w}`;
         warningsEl.appendChild(li);
       });
     });
