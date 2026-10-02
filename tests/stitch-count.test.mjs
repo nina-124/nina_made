@@ -1,0 +1,52 @@
+// 這些案例來自使用者實際的圖解寫法與她認定的總針數；規則改動時它們應該失敗。
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { countStitches, roundHeightOf } from '../js/stitch-count.js';
+
+test('使用者範例一：括號前的數字是重複，CH 不算針，加針算 2', () => {
+  assert.equal(countStitches('2CH, [3(X, V), X], 2X,  [3(X, V), X], 2X'), 24);
+});
+
+test('使用者範例二：SL 算針、5 是最外層重複次數（原本漏乘 5 的 6 是筆誤，正確為 30）', () => {
+  assert.equal(countStitches('5(SL, 4CH, 2[2(QTR)], 4CH, SL)'), 30);
+});
+
+test('基本針法與乘法', () => {
+  assert.equal(countStitches('6X'), 6);
+  assert.equal(countStitches('(X,V)'), 3);
+  assert.equal(countStitches('10(2X,V)'), 40);
+});
+
+test('全形括號、頓號與小寫視同半形', () => {
+  assert.equal(countStitches('（x、v）'), 3);
+  assert.equal(countStitches('{[(X,V)]}'), 3);
+});
+
+test('只有 CH 或空白時為 0', () => {
+  assert.equal(countStitches('4CH'), 0);
+  assert.equal(countStitches(''), 0);
+});
+
+test('不認得的針法或括號不成對時回傳 null，而不是亂算', () => {
+  assert.equal(countStitches('3(X,ZZ)'), null);
+  assert.equal(countStitches('3(X,V'), null);
+  assert.equal(countStitches('X,V)'), null);
+  assert.equal(countStitches('(X,V]'), null);
+  assert.equal(countStitches('(X,V)*6'), null);
+  assert.equal(countStitches('3'), null);
+});
+
+test('棗形針、爆米花針、泡芙針一組算 1 針，前面的數字是做幾組', () => {
+  assert.equal(countStitches('TCA'), 1);
+  assert.equal(countStitches('3FG'), 3);
+  assert.equal(countStitches('5(X, PF)'), 10);
+});
+
+test('圈高以短針為 1，混用針法取最高的，沒有針法時為 1', () => {
+  assert.equal(roundHeightOf('6X'), 1);
+  assert.equal(roundHeightOf('6T'), 1.5);
+  assert.equal(roundHeightOf('2CH, 3F'), 2);
+  assert.equal(roundHeightOf('(X, V), E'), 3);
+  assert.equal(roundHeightOf('4CH'), 1);
+  assert.equal(roundHeightOf(''), 1);
+});
