@@ -24,6 +24,7 @@ import {
   openCategoryModal as openDiagramsCategoryModal,
 } from './views/diagrams.js';
 import { renderMaterialsView } from './views/materials.js';
+import { renderTextsView, renderViewerView } from './views/texts.js';
 import { bindDragReorder, bindDropZone } from './drag-reorder.js';
 
 const auth = getAuth();
@@ -37,6 +38,18 @@ const ctx = {
 let currentWorksPath = [];
 let currentDiagramsPath = [];
 let currentMaterialsPath = [];
+
+function renderPreviewSubnav(section) {
+  const subnav = document.getElementById('texts-subnav');
+  if (!subnav) return;
+  subnav.innerHTML = `
+    <div class="nav-subitem ${section === 'texts' ? 'active' : ''}" data-preview-page="texts">圖解文本</div>
+    <div class="nav-subitem ${section === 'viewer' ? 'active' : ''}" data-preview-page="viewer">3D預覽</div>
+  `;
+  subnav.querySelectorAll('[data-preview-page]').forEach((el) => {
+    el.addEventListener('click', () => navigate([el.dataset.previewPage]));
+  });
+}
 
 function renderMaterialsSubnav() {
   const subnav = document.getElementById('materials-subnav');
@@ -197,6 +210,8 @@ function renderShell() {
     ${ctx.authed ? `<div class="nav-section" id="diagrams-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="materials"><span class="nav-icon">${ICONS.scissors}</span>線材&工具</button>` : ''}
     ${ctx.authed ? `<div class="nav-section" id="materials-subnav"></div>` : ''}
+    ${ctx.authed ? `<button class="nav-item" data-nav="texts"><span class="nav-icon">${ICONS.cube}</span>3D預覽</button>` : ''}
+    ${ctx.authed ? `<div class="nav-section" id="texts-subnav"></div>` : ''}
     ${ctx.authed ? `<button class="nav-item" data-nav="settings"><span class="nav-icon">${ICONS.sliders}</span>設定</button>` : ''}
   `;
   sidebar.querySelectorAll('[data-nav]').forEach((el) => {
@@ -235,6 +250,8 @@ function updateSubnavVisibility(section) {
   if (worksSubnav) worksSubnav.hidden = section !== 'works';
   if (diagramsSubnav) diagramsSubnav.hidden = section !== 'diagrams';
   if (materialsSubnav) materialsSubnav.hidden = section !== 'materials';
+  const textsSubnav = document.getElementById('texts-subnav');
+  if (textsSubnav) textsSubnav.hidden = section !== 'texts' && section !== 'viewer';
 }
 
 async function onRoute(path) {
@@ -242,7 +259,7 @@ async function onRoute(path) {
   const section = path[0] || 'works';
 
   document.querySelectorAll('.nav-item').forEach((el) => {
-    el.classList.toggle('active', el.dataset.nav === section);
+    el.classList.toggle('active', el.dataset.nav === (section === 'viewer' ? 'texts' : section));
   });
   updateSubnavVisibility(section);
 
@@ -264,6 +281,10 @@ async function onRoute(path) {
     currentMaterialsPath = path.slice(1);
     await renderMaterialsView(container, currentMaterialsPath, ctx);
     renderMaterialsSubnav();
+  } else if (section === 'texts' || section === 'viewer') {
+    renderPreviewSubnav(section);
+    if (section === 'texts') await renderTextsView(container, path.slice(1), ctx);
+    else await renderViewerView(container, path.slice(1), ctx);
   } else if (section === 'settings') {
     renderPlaceholder(container, '設定');
   } else {

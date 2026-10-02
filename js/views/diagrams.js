@@ -265,6 +265,35 @@ export function moveItemToCategory(fromPath, itemId, toCategoryId) {
   notifyUpdated();
 }
 
+// ---------- 給「圖解文本」匯出用 ----------
+// 圖解筆記只能放在第二層以下的分類裡（和畫面上「＋ 圖解筆記」的限制一致），所以只列出這些分類，用 / 表示層級
+function collectPatternDestinations(items, names) {
+  let list = [];
+  for (const item of items || []) {
+    if (item.type !== 'category') continue;
+    const trail = [...names, item.name];
+    if (trail.length >= 2) list.push({ id: item.id, name: trail.join(' / ') });
+    list = list.concat(collectPatternDestinations(item.items, trail));
+  }
+  return list;
+}
+
+export async function listPatternDestinations(token) {
+  await loadData(token);
+  return collectPatternDestinations(cache.items, []);
+}
+
+// 在指定分類底下新增一份圖解筆記並立即存檔；回傳筆記名稱
+export async function addPatternToCategory(categoryId, { name, tables }, token) {
+  await loadData(token);
+  const category = findCategoryById(cache.items, categoryId);
+  if (!category) throw new Error('找不到這個分類，請重新整理後再試');
+  category.items = category.items || [];
+  category.items.push({ id: slugify(name), name, type: 'pattern', yarnNote: '', tables, blocks: [] });
+  await commitCache(token, `從圖解文本匯出「${name}」`);
+  return name;
+}
+
 // 給「搬到分類…」下拉選單用：列出整棵樹裡所有分類（用 / 表示層級），並排除自己與自己底下的子分類（避免搬進自己形成循環）
 function collectCategoryOptions(items, prefix, excludeIds) {
   let options = [];

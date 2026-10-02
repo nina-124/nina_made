@@ -53,27 +53,29 @@ export function analyzeTable(table) {
     if (!count || count <= 0) continue;
 
     const height = stitchText ? roundHeightOf(stitchText) : previousHeight;
-    rounds.push({ count, repeat: parseRoundSpan(row.round), height });
+    const color = /^#[0-9a-f]{6}$/i.test(row.color || '') ? parseInt(row.color.slice(1), 16) : null; // 圖解文本的換色
+    rounds.push({ count, repeat: parseRoundSpan(row.round), height, color });
     previous = count;
     previousHeight = height;
   }
   return { rounds, warnings };
 }
 
-// 每圈一個 (半徑, 高度)，繞 Y 軸旋轉成形狀
-function buildProfile(rounds, stitchWidth, roundHeight) {
+// 每圈一個 (半徑, 高度, 顏色)，繞 Y 軸旋轉成形狀；沒指定顏色的圈用 fallbackColor
+function buildProfile(rounds, stitchWidth, roundHeight, fallbackColor) {
   const points = [];
   let y = 0;
   const first = rounds[0].count;
-  if (first <= CLOSE_THRESHOLD) points.push([0, 0]);
-  for (const { count, repeat, height } of rounds) {
+  if (first <= CLOSE_THRESHOLD) points.push([0, 0, rounds[0].color ?? fallbackColor]);
+  for (const { count, repeat, height, color } of rounds) {
     const r = (count * stitchWidth) / (2 * Math.PI);
     for (let k = 0; k < repeat; k++) {
       y += roundHeight * height;
-      points.push([r, y]);
+      points.push([r, y, color ?? fallbackColor]);
     }
   }
-  if (rounds[rounds.length - 1].count <= CLOSE_THRESHOLD) points.push([0, y + roundHeight * rounds[rounds.length - 1].height * 0.6]);
+  const last = rounds[rounds.length - 1];
+  if (last.count <= CLOSE_THRESHOLD) points.push([0, y + roundHeight * last.height * 0.6, last.color ?? fallbackColor]);
   return points;
 }
 
@@ -181,14 +183,23 @@ export async function mountDiagramPreview(host, getTables) {
     analyzed.forEach((a, i) => {
       if (selected !== 'all' && selected !== i) return;
       if (!a.rounds.length) return;
-      const profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT);
+      const partColor = PART_COLORS[i % PART_COLORS.length];
+      const profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT, partColor);
       const maxR = Math.max(...profile.map((p) => p[0]));
       const geometry = new THREE.LatheGeometry(
         profile.map(([r, y]) => new THREE.Vector2(r, y)),
         64
       );
+      // LatheGeometry 的頂點依「每個角度一整排剖面點」排列，所以第 k 個頂點的顏色就是剖面第 (k % 點數) 點的顏色
+      const colors = new Float32Array(geometry.attributes.position.count * 3);
+      const tmp = new THREE.Color();
+      for (let k = 0; k < geometry.attributes.position.count; k++) {
+        tmp.set(profile[k % profile.length][2]);
+        colors.set([tmp.r, tmp.g, tmp.b], k * 3);
+      }
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       const material = new THREE.MeshStandardMaterial({
-        color: PART_COLORS[i % PART_COLORS.length],
+        vertexColors: true,
         roughness: 0.9,
         side: THREE.DoubleSide,
       });

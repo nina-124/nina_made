@@ -1,0 +1,370 @@
+// 圖解文本：以「列」為單位快速打出針法（P＝部位、R＝圈、換色），可匯出成圖解筆記，也供 3D 預覽頁使用。
+// 資料存在私人 repo 的 data/texts.json：{ items: [{ id, name, rows: [...] }] }，列的規則見 text-rows.js。
+
+import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
+import { ICONS } from '../icons.js';
+import { countStitches } from '../stitch-count.js';
+import { TEXT_COLORS, labelRows, newRow, textRowsToTables } from '../text-rows.js';
+import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
+import { mountDiagramPreview } from './diagram-preview.js';
+
+const DATA_PATH = 'data/texts.json';
+
+let cache = null;
+let sha = null;
+let editMode = false;
+
+const esc = (s) =>
+  String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+const newTextId = () => `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+async function loadData(token) {
+  if (cache) return cache;
+  const result = await getJsonFile(PRIVATE_REPO, DATA_PATH, token);
+  cache = result.data || { items: [] };
+  if (!cache.items) cache.items = [];
+  sha = result.sha;
+  return cache;
+}
+
+async function commit(token, message) {
+  const res = await putJsonFile(PRIVATE_REPO, DATA_PATH, cache, sha, token, message);
+  sha = res.content.sha;
+}
+
+function bindEditToggle(container, ctx, message, rerender) {
+  const btn = container.querySelector('#edit-toggle');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      if (editMode) {
+        await commit(ctx.token, message);
+        editMode = false;
+      } else {
+        editMode = true;
+      }
+      rerender();
+    } catch (e) {
+      alert(e.message);
+      btn.disabled = false;
+    }
+  });
+}
+
+const editToggleHtml = () =>
+  `<button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${editMode ? ICONS.check : ICONS.pencil}</button>`;
+
+// ---------- 彈窗 ----------
+function openModal(title, bodyHtml, submitLabel, onSubmit) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-header"><span>${title}</span><span class="close-x">&#10005;</span></div>
+      <div class="modal-body">
+        ${bodyHtml}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-cancel>取消</button>
+          <button type="button" class="btn btn-primary" data-submit>${submitLabel}</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.close-x').addEventListener('click', close);
+  overlay.querySelector('[data-cancel]').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelector('[data-submit]').addEventListener('click', async () => {
+    if ((await onSubmit(overlay)) !== false) close();
+  });
+  return overlay;
+}
+
+function openNameModal(title, initial, onSubmit) {
+  openModal(
+    title,
+    `<label>名稱 <input type="text" name="name" value="${esc(initial)}" placeholder="請輸入名稱"></label>`,
+    initial ? '儲存' : '新增',
+    (overlay) => {
+      const name = overlay.querySelector('input[name="name"]').value.trim();
+      if (!name) return false;
+      onSubmit(name);
+    }
+  );
+}
+
+async function openExportModal(item, ctx) {
+  let destinations;
+  try {
+    destinations = await listPatternDestinations(ctx.token);
+  } catch (e) {
+    alert(e.message);
+    return;
+  }
+  if (!destinations.length) {
+    alert('圖解裡還沒有第二層以下的分類可以放圖解筆記，請先到「圖解」建立分類。');
+    return;
+  }
+  openModal(
+    `匯出「${esc(item.name)}」到圖解`,
+    `<label>放進哪個分類
+       <select name="dest">${destinations.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join('')}</select>
+     </label>
+     <p style="margin:0; font-size:13px; color:var(--text-grey);">會在這個分類底下新增一份圖解筆記，每個 P 變成一張部位表。匯出後兩邊各自獨立。</p>`,
+    '匯出',
+    async (overlay) => {
+      const select = overlay.querySelector('select[name="dest"]');
+      const destName = select.selectedOptions[0].textContent;
+      try {
+        await addPatternToCategory(select.value, { name: item.name, tables: textRowsToTables(item.rows) }, ctx.token);
+      } catch (e) {
+        alert(e.message);
+        return false;
+      }
+      alert(`已匯出到「${destName}」`);
+    }
+  );
+}
+
+// ---------- 列表頁 ----------
+function renderList(container, ctx) {
+  const items = cache.items;
+  const rerender = () => renderList(container, ctx);
+  container.innerHTML = `
+    <div class="topbar">
+      <div class="breadcrumb"><span class="crumb">圖解文本</span></div>
+      ${editToggleHtml()}
+    </div>
+    <div class="card-grid">
+      ${items
+        .map(
+          (item) => `
+        <div class="card text-card" data-id="${item.id}">
+          <button class="del-btn" data-export="${item.id}" title="匯出到圖解" style="right:${editMode ? 52 : -8}px; color:var(--green-700);">${ICONS.exportIcon}</button>
+          ${
+            editMode
+              ? `<button class="del-btn" data-rename="${item.id}" style="right:22px; color:var(--green-700);">${ICONS.pencil}</button>
+                 <button class="del-btn" data-del="${item.id}" style="right:-8px;">&#10005;</button>`
+              : ''
+          }
+          <div class="card-name">${esc(item.name)}</div>
+        </div>`
+        )
+        .join('')}
+      ${editMode ? `<div class="card card-add card-add-labeled text-card" id="add-card">&#65291; 圖解文本</div>` : ''}
+    </div>
+    ${!items.length && !editMode ? `<div class="empty-hint">目前還沒有圖解文本</div>` : ''}
+  `;
+
+  container.querySelectorAll('.card[data-id]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      ctx.navigate(['texts', el.dataset.id]);
+    });
+  });
+  container.querySelectorAll('[data-export]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openExportModal(items.find((i) => i.id === el.dataset.export), ctx);
+    });
+  });
+  container.querySelectorAll('[data-rename]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = items.find((i) => i.id === el.dataset.rename);
+      openNameModal('修改名稱', item.name, (name) => {
+        item.name = name;
+        rerender();
+      });
+    });
+  });
+  container.querySelectorAll('[data-del]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cache.items = items.filter((i) => i.id !== el.dataset.del);
+      rerender();
+    });
+  });
+  const add = container.querySelector('#add-card');
+  if (add) {
+    add.addEventListener('click', () => {
+      openNameModal('新增圖解文本', '', (name) => {
+        items.push({ id: newTextId(), name, rows: [newRow('P')] });
+        rerender();
+      });
+    });
+  }
+  bindEditToggle(container, ctx, '更新圖解文本', rerender);
+}
+
+// ---------- 表格（編輯頁與 3D預覽頁共用）----------
+function tableHtml(text, editable) {
+  const labeled = labelRows(text.rows);
+  const hasColorChange = text.rows.some((r) => r.kind === 'C');
+  const dot = (i) => `<span class="text-dot" style="background:${TEXT_COLORS[i].hex}"></span>`;
+  const cell = (row, field, value) =>
+    editable
+      ? `<span class="cell-edit" contenteditable="true" data-field="${field}">${esc(value)}</span>`
+      : esc(value);
+
+  const rows = labeled
+    .map(({ row, label, colorIndex }, i) => {
+      const del = editable ? `<div><button class="del-btn" data-del-row="${row.id}" style="position:static;">&#10005;</button></div>` : '';
+      const idx = `<div class="text-cell-idx">${i + 1}</div>`;
+      if (row.kind === 'P') {
+        return `<div class="text-row text-row-p" data-row="${row.id}">${idx}<div class="text-cell-label">${label}</div><div></div><div></div>${del}</div>`;
+      }
+      if (row.kind === 'C') {
+        return `<div class="text-row text-row-c" data-row="${row.id}">${idx}<div class="text-cell-label">${dot(colorIndex)}</div><div>換色：${TEXT_COLORS[colorIndex].name}</div><div></div>${del}</div>`;
+      }
+      return `<div class="text-row" data-row="${row.id}">${idx}
+        <div class="text-cell-label">${hasColorChange ? dot(colorIndex) : ''}${label}</div>
+        <div>${cell(row, 'stitch', row.stitch)}</div>
+        <div class="text-cell-total">${cell(row, 'total', row.total)}</div>${del}</div>`;
+    })
+    .join('');
+  return `<div class="text-grid ${editable ? 'is-editing' : ''}">${rows}</div>`;
+}
+
+// ---------- 可編輯的表格＋工具鍵（編輯頁與 3D預覽頁共用）----------
+// onChange：表格內容有任何變動（打字、加列、刪列）都會呼叫，3D預覽頁用它即時更新預覽
+function mountTableEditor(host, text, { toolsBelow = false, onChange = () => {} } = {}) {
+  const render = () => {
+    host.innerHTML = `
+      <div class="text-editor ${toolsBelow ? 'tools-below' : ''}">
+        <div class="text-table-wrap">${tableHtml(text, editMode)}</div>
+        ${
+          editMode
+            ? `<div class="text-tools">
+                <button class="btn btn-secondary text-tool" data-add="R">R:自動序號</button>
+                <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
+                ${TEXT_COLORS.map(
+                  (c, i) =>
+                    `<button class="btn btn-secondary text-tool" data-add-color="${i}"><span class="text-dot" style="background:${c.hex}"></span>換色 ${c.name}</button>`
+                ).join('')}
+              </div>`
+            : ''
+        }
+      </div>`;
+    bind();
+  };
+
+  const bind = () => {
+    host.querySelectorAll('[data-row] [contenteditable]').forEach((el) => {
+      const row = text.rows.find((r) => r.id === el.closest('[data-row]').dataset.row);
+      el.addEventListener('input', () => {
+        row[el.dataset.field] = el.textContent;
+        if (el.dataset.field === 'stitch') {
+          // 針法能解析就自動填總針數；解析不了（或清空）就保留手填的數字
+          const t = el.textContent.trim();
+          const total = t ? countStitches(t) : null;
+          if (total !== null) {
+            row.total = String(total);
+            el.closest('[data-row]').querySelector('[data-field="total"]').textContent = row.total;
+          }
+        }
+        onChange();
+      });
+      // 欄位是單行純文字：不換行，貼上只留文字
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') e.preventDefault();
+      });
+      el.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const plain = (e.clipboardData?.getData('text/plain') || '').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, plain);
+      });
+    });
+
+    host.querySelectorAll('[data-del-row]').forEach((el) => {
+      el.addEventListener('click', () => {
+        text.rows = text.rows.filter((r) => r.id !== el.dataset.delRow);
+        render();
+        onChange();
+      });
+    });
+
+    const addRow = (row, focusStitch) => {
+      text.rows.push(row);
+      render();
+      onChange();
+      if (focusStitch) host.querySelector('.text-row:last-child [data-field="stitch"]')?.focus();
+    };
+    host.querySelectorAll('[data-add]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const kind = el.dataset.add;
+        addRow(newRow(kind), kind === 'R');
+      });
+    });
+    host.querySelectorAll('[data-add-color]').forEach((el) => {
+      el.addEventListener('click', () => addRow(newRow('C', Number(el.dataset.addColor)), false));
+    });
+  };
+
+  render();
+}
+
+// ---------- 編輯頁 ----------
+function renderEditor(container, text, ctx) {
+  container.innerHTML = `
+    <div class="topbar">
+      <div class="breadcrumb"><span class="crumb" data-back>圖解文本</span></div>
+      ${editToggleHtml()}
+    </div>
+    <h2 class="text-title">${esc(text.name)}</h2>
+    <div id="text-editor-host"></div>
+  `;
+  container.querySelector('[data-back]').addEventListener('click', () => ctx.navigate(['texts']));
+  mountTableEditor(container.querySelector('#text-editor-host'), text);
+  bindEditToggle(container, ctx, `更新圖解文本「${text.name}」`, () => renderEditor(container, text, ctx));
+}
+
+export async function renderTextsView(container, path, ctx) {
+  await loadData(ctx.token);
+  const text = path[0] && cache.items.find((i) => i.id === path[0]);
+  if (text) renderEditor(container, text, ctx);
+  else renderList(container, ctx);
+}
+
+// ---------- 3D預覽頁：左邊預覽、右邊圖解文本、上方切換文本 ----------
+// 右邊可直接修改，預覽即時跟著變；按 ✓ 存檔後，圖解文本（同一份資料）也就同步更新
+export async function renderViewerView(container, path, ctx) {
+  await loadData(ctx.token);
+  const items = cache.items;
+  const text = items.find((i) => i.id === path[0]) || items[0];
+  if (!text) {
+    container.innerHTML = `
+      <div class="topbar"><div class="breadcrumb"><span class="crumb">3D預覽</span></div></div>
+      <div class="empty-hint">還沒有圖解文本，請先到「圖解文本」新增</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="topbar">
+      <div class="breadcrumb"><span class="crumb">3D預覽</span></div>
+      <div class="diagram-preview-chips" id="viewer-chips">
+        ${items
+          .map((i) => `<button type="button" class="diagram-preview-chip ${i.id === text.id ? 'active' : ''}" data-id="${i.id}">${esc(i.name)}</button>`)
+          .join('')}
+      </div>
+      ${editToggleHtml()}
+    </div>
+    <div class="text-viewer">
+      <section class="diagram-preview" id="viewer-preview"></section>
+      <div id="viewer-table"></div>
+    </div>
+  `;
+  container.querySelectorAll('#viewer-chips [data-id]').forEach((el) => {
+    el.addEventListener('click', () => ctx.navigate(['viewer', el.dataset.id]));
+  });
+  const previewReady = mountDiagramPreview(container.querySelector('#viewer-preview'), () =>
+    textRowsToTables(text.rows, { withColor: true })
+  );
+  mountTableEditor(container.querySelector('#viewer-table'), text, {
+    toolsBelow: true,
+    onChange: () => previewReady.then((p) => p.refresh()),
+  });
+  bindEditToggle(container, ctx, `更新圖解文本「${text.name}」`, () => renderViewerView(container, path, ctx));
+}
