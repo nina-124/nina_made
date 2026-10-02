@@ -1012,7 +1012,24 @@ body.ck-open .main { padding-bottom: 360px; }
   .text-tool { width: auto; flex: 1 1 auto; }
   .text-row { font-size: 14pt; gap: 8px; }
 }
-.text-editor.tools-below { grid-template-columns: minmax(0, 1fr); }
-.text-editor.tools-below .text-tools { flex-direction: row; flex-wrap: wrap; order: 2; }
-.text-editor.tools-below .text-tool { width: auto; flex: 1 1 auto; }
 .topbar .diagram-preview-chips { margin: 0; }
+.text-part-tools { display: flex; align-items: center; gap: 8px; }
+.text-mini { padding: 4px 12px; font-size: 13px; }
+.text-mini-dot {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(54, 75, 53, 0.25);
+}
+/* 工具鍵浮在表格旁邊，跟著捲動 */
+.text-tools { position: sticky; top: 16px; }
+.text-viewer { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.text-viewer .text-editor { grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; }
+@media (max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px) {
+  .text-viewer, .text-viewer .text-editor { grid-template-columns: minmax(0, 1fr); }
+  /* 手機：工具列貼在頂部分類標籤列下方，捲動時不消失 */
+  .text-tools { top: 60px; z-index: 6; padding: 8px 0; background: rgba(247, 248, 243, 0.96); }
+}

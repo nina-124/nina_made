@@ -4,7 +4,7 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
-import { TEXT_COLORS, labelRows, newRow, textRowsToTables } from '../text-rows.js';
+import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
 import { mountDiagramPreview } from './diagram-preview.js';
 
@@ -212,10 +212,21 @@ function tableHtml(text, editable) {
 
   const rows = labeled
     .map(({ row, label, colorIndex }, i) => {
-      const del = editable ? `<div><button class="del-btn" data-del-row="${row.id}" style="position:static;">&#10005;</button></div>` : '';
+      const del = editable
+        ? `<div><button class="del-btn" ${row.kind === 'P' ? 'data-del-part' : 'data-del-row'}="${row.id}" title="${row.kind === 'P' ? `刪除 ${label} 與它底下的列` : '刪除這一列'}" style="position:static;">&#10005;</button></div>`
+        : '';
       const idx = `<div class="text-cell-idx">${i + 1}</div>`;
       if (row.kind === 'P') {
-        return `<div class="text-row text-row-p" data-row="${row.id}">${idx}<div class="text-cell-label">${label}</div><div></div><div></div>${del}</div>`;
+        const partTools = editable
+          ? `<div class="text-part-tools">
+              <button type="button" class="btn btn-secondary text-mini" data-add-in="${row.id}" data-kind="R">＋R</button>
+              ${TEXT_COLORS.map(
+                (c, i) =>
+                  `<button type="button" class="text-mini-dot" data-add-in="${row.id}" data-kind="C" data-color="${i}" title="在 ${label} 加入換色：${c.name}" style="background:${c.hex}"></button>`
+              ).join('')}
+            </div>`
+          : '<div></div>';
+        return `<div class="text-row text-row-p" data-row="${row.id}">${idx}<div class="text-cell-label">${label}</div>${partTools}<div></div>${del}</div>`;
       }
       if (row.kind === 'C') {
         return `<div class="text-row text-row-c" data-row="${row.id}">${idx}<div class="text-cell-label">${dot(colorIndex)}</div><div>換色：${TEXT_COLORS[colorIndex].name}</div><div></div>${del}</div>`;
@@ -231,16 +242,16 @@ function tableHtml(text, editable) {
 
 // ---------- 可編輯的表格＋工具鍵（編輯頁與 3D預覽頁共用）----------
 // onChange：表格內容有任何變動（打字、加列、刪列）都會呼叫，3D預覽頁用它即時更新預覽
-function mountTableEditor(host, text, { toolsBelow = false, onChange = () => {} } = {}) {
+function mountTableEditor(host, text, { onChange = () => {} } = {}) {
   const render = () => {
     host.innerHTML = `
-      <div class="text-editor ${toolsBelow ? 'tools-below' : ''}">
+      <div class="text-editor">
         <div class="text-table-wrap">${tableHtml(text, editMode)}</div>
         ${
           editMode
             ? `<div class="text-tools">
-                <button class="btn btn-secondary text-tool" data-add="R">R:自動序號</button>
                 <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
+                <button class="btn btn-secondary text-tool" data-add="R">R:自動序號</button>
                 ${TEXT_COLORS.map(
                   (c, i) =>
                     `<button class="btn btn-secondary text-tool" data-add-color="${i}"><span class="text-dot" style="background:${c.hex}"></span>換色 ${c.name}</button>`
@@ -287,12 +298,32 @@ function mountTableEditor(host, text, { toolsBelow = false, onChange = () => {} 
       });
     });
 
-    const addRow = (row, focusStitch) => {
-      text.rows.push(row);
+    const addRow = (row, focusStitch, pId) => {
+      if (pId) insertInGroup(text.rows, pId, row);
+      else text.rows.push(row);
       render();
       onChange();
-      if (focusStitch) host.querySelector('.text-row:last-child [data-field="stitch"]')?.focus();
+      if (focusStitch) host.querySelector(`[data-row="${row.id}"] [data-field="stitch"]`)?.focus();
     };
+    host.querySelectorAll('[data-add-in]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const isColor = el.dataset.kind === 'C';
+        addRow(isColor ? newRow('C', Number(el.dataset.color)) : newRow('R'), !isColor, el.dataset.addIn);
+      });
+    });
+    host.querySelectorAll('[data-del-part]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.delPart;
+        const count = text.rows.length;
+        const idx = text.rows.findIndex((r) => r.id === id);
+        const next = text.rows.findIndex((r, i) => i > idx && r.kind === 'P');
+        const inside = (next === -1 ? count : next) - idx - 1;
+        if (inside > 0 && !confirm(`這個部位底下有 ${inside} 列，會一起刪除，確定嗎？`)) return;
+        removeGroup(text.rows, id);
+        render();
+        onChange();
+      });
+    });
     host.querySelectorAll('[data-add]').forEach((el) => {
       el.addEventListener('click', () => {
         const kind = el.dataset.add;
@@ -363,7 +394,6 @@ export async function renderViewerView(container, path, ctx) {
     textRowsToTables(text.rows, { withColor: true })
   );
   mountTableEditor(container.querySelector('#viewer-table'), text, {
-    toolsBelow: true,
     onChange: () => previewReady.then((p) => p.refresh()),
   });
   bindEditToggle(container, ctx, `更新圖解文本「${text.name}」`, () => renderViewerView(container, path, ctx));

@@ -63,3 +63,25 @@ export function textRowsToTables(rows, { withColor = false, makeId = newRowId } 
   }
   return tables;
 }
+
+// 某個 P 的內容範圍：從 P 那一列到下一個 P 之前；回傳 [起, 止)（止不含）
+function groupRange(rows, pId) {
+  const start = rows.findIndex((r) => r.id === pId && r.kind === 'P');
+  if (start === -1) return null;
+  let end = rows.findIndex((r, i) => i > start && r.kind === 'P');
+  if (end === -1) end = rows.length;
+  return [start, end];
+}
+
+// 把新列放進指定 P 的最後面（下一個 P 之前）；找不到那個 P 就放到整張表最後
+export function insertInGroup(rows, pId, row) {
+  const range = groupRange(rows, pId);
+  rows.splice(range ? range[1] : rows.length, 0, row);
+}
+
+// 刪掉指定的 P 以及它底下所有的列，回傳被刪掉的列數（含 P 本身）
+export function removeGroup(rows, pId) {
+  const range = groupRange(rows, pId);
+  if (!range) return 0;
+  return rows.splice(range[0], range[1] - range[0]).length;
+}

@@ -35,3 +35,27 @@ test('3D 預覽用：每個 R 帶著當下的顏色', () => {
   const tables = textRowsToTables([P(), R(), C(1), R()], { withColor: true });
   assert.deepEqual(tables[0].rows.map((r) => r.color), [TEXT_COLORS[0].hex, TEXT_COLORS[1].hex]);
 });
+
+import { insertInGroup, removeGroup } from '../js/text-rows.js';
+
+const withId = (row, id) => ({ ...row, id });
+
+test('在指定 P 底下新增列，會放在該 P 的最後、下一個 P 之前，編號自動接上', () => {
+  const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(P(), 'p2'), withId(R(), 'b')];
+  insertInGroup(rows, 'p1', withId(R(), 'new'));
+  assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new', 'p2', 'b']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2', 'P2', 'R1']);
+});
+
+test('指定的 P 是最後一個時，新增的列放在表格最後', () => {
+  const rows = [withId(P(), 'p1'), withId(R(), 'a')];
+  insertInGroup(rows, 'p1', withId(R(), 'new'));
+  assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new']);
+});
+
+test('刪除一個 P 會連同它底下的列一起刪，不動其他 P，後面的 P 編號自動遞補', () => {
+  const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(R(), 'b'), withId(P(), 'p2'), withId(R(), 'c')];
+  assert.equal(removeGroup(rows, 'p1'), 3);
+  assert.deepEqual(rows.map((r) => r.id), ['p2', 'c']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1']);
+});
