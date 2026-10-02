@@ -846,7 +846,7 @@ a { color: inherit; }
   @page { size: A4; margin: 0; }
   body { background: #fff; }
   body::before, body::after { display: none !important; }
-  .sidebar, .topbar, .logout-link { display: none !important; }
+  .sidebar, .topbar, .logout-link, .diagram-preview { display: none !important; }
   .main { padding: 0; margin-left: 0; }
   #print-area { max-width: 100%; padding: 10mm; box-sizing: border-box; }
   .diagram-top-left .work-detail-name::before { content: none; }
@@ -869,3 +869,44 @@ a { color: inherit; }
   .row-attach .block-text { font-size: 8.5pt; }
   .del-btn, .card-add, .modal-overlay, .color-palette, .diagram-toc { display: none !important; }
 }
+
+/* 圖解 3D 預覽 */
+.diagram-preview {
+  margin: 20px 0 32px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+}
+.diagram-preview-title { margin: 0 0 10px; font-size: 18pt; }
+.diagram-preview-sub { font-size: 13px; font-weight: 400; color: var(--text-grey); }
+.diagram-preview-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.diagram-preview-chips:not(:empty) { margin-bottom: 10px; }
+.diagram-preview-chip {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: rgba(110, 127, 82, 0.12);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.diagram-preview-chip.active { background: rgba(110, 127, 82, 0.3); font-weight: 700; }
+.diagram-preview-canvas {
+  position: relative;
+  height: 340px;
+  border-radius: 12px;
+  background: #eef3e6;
+  overflow: hidden;
+}
+.diagram-preview-canvas canvas { display: block; width: 100%; height: 100%; }
+.diagram-preview-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-grey);
+  pointer-events: none;
+}
+.diagram-preview-warnings { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: #a8642a; }
+.diagram-preview-warnings:empty { display: none; }
