@@ -230,7 +230,7 @@ function tableHtml(text, editable) {
               <button type="button" class="btn btn-secondary text-mini" data-add-in="${row.id}" data-kind="R">＋R</button>
               ${TEXT_COLORS.map(
                 (c, i) =>
-                  `<button type="button" class="text-mini-dot" data-add-in="${row.id}" data-kind="C" data-color="${i}" title="在 ${label} 加入換色：${c.name}" style="background:${c.hex}"></button>`
+                  `<button type="button" class="text-mini-dot" data-add-in="${row.id}" data-kind="C" data-color="${i}" title="${c.name}：有選取針法文字就幫選取的針上色，沒有選取就在 ${label} 底下加入換色列" style="background:${c.hex}"></button>`
               ).join('')}
             </div>`
           : '<div></div>';
@@ -404,10 +404,20 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
       if (focusStitch) host.querySelector(`[data-row="${row.id}"] [data-field="stitch"]`)?.focus();
     };
     host.querySelectorAll('[data-add-in]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const isColor = el.dataset.kind === 'C';
-        addRow(isColor ? newRow('C', Number(el.dataset.color)) : newRow('R'), !isColor, el.dataset.addIn);
+      if (el.dataset.kind === 'R') {
+        el.addEventListener('click', () => addRow(newRow('R'), true, el.dataset.addIn));
+        return;
+      }
+      // P 列的色點也一樣：有選取針法文字 → 幫選取的針上色；沒有選取 → 在這個 P 底下新增換色標記
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const n = Number(el.dataset.color);
+        const selected = selectedStitchText();
+        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected})`);
+        else addRow(newRow('C', n), false, el.dataset.addIn);
       });
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('click', (e) => e.preventDefault());
     });
     host.querySelectorAll('[data-del-part]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -434,7 +444,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
         e.preventDefault(); // 不要讓選取消失
         const n = Number(el.dataset.addColor);
         const selected = selectedStitchText();
-        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected.trim()})`);
+        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected})`);
         else addRow(newRow('C', n), false);
       });
       el.addEventListener('mousedown', (e) => e.preventDefault());
