@@ -4,7 +4,7 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
-import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup } from '../text-rows.js';
+import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
 import { mountDiagramPreview } from './diagram-preview.js';
 
@@ -243,6 +243,7 @@ function tableHtml(text, editable) {
 // ---------- 可編輯的表格＋工具鍵（編輯頁與 3D預覽頁共用）----------
 // onChange：表格內容有任何變動（打字、加列、刪列）都會呼叫，3D預覽頁用它即時更新預覽
 function mountTableEditor(host, text, { compact = false, onChange = () => {} } = {}) {
+  let lastStitchCell = null; // 最後編輯的針法欄：按 TURN / DU 時把文字插入這裡
   const render = () => {
     host.innerHTML = `
       <div class="text-editor">
@@ -257,6 +258,8 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
                     (c, i) =>
                       `<button type="button" class="text-mini-dot text-color-btn" data-add-color="${i}" title="換色：${c.name}" style="background:${c.hex}"></button>`
                   ).join('')}
+                  <button class="btn btn-secondary text-tool text-tool-token" data-turn title="TURN：翻面並換下一圈">TURN</button>
+                  <button class="btn btn-secondary text-tool text-tool-token" data-insert="DU" title="插入 DU（斷線）">DU</button>
                 </div>`
               : `<div class="text-tools">
                   <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
@@ -265,6 +268,8 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
                     (c, i) =>
                       `<button class="btn btn-secondary text-tool" data-add-color="${i}"><span class="text-dot" style="background:${c.hex}"></span>換色 ${c.name}</button>`
                   ).join('')}
+                  <button class="btn btn-secondary text-tool" data-turn>TURN:翻面換圈</button>
+                  <button class="btn btn-secondary text-tool" data-insert="DU">DU:斷線</button>
                 </div>`
             : ''
         }
@@ -272,7 +277,67 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     bind();
   };
 
+  // 要作用的針法欄：最後編輯的那一欄；沒有的話用最後一個 R 列，游標放在尾端
+  const targetStitchCell = () => {
+    if (lastStitchCell && host.contains(lastStitchCell)) return lastStitchCell;
+    const cells = host.querySelectorAll('[data-field="stitch"]');
+    const cell = cells[cells.length - 1];
+    if (!cell) return null;
+    cell.focus();
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return cell;
+  };
+
+  // 把標記插入針法欄的游標處（DU）；會觸發 input 事件，原本的存檔與計算照常運作
+  const insertToken = (token) => {
+    if (targetStitchCell()) document.execCommand('insertText', false, token);
+  };
+
+  // TURN：翻面並換下一圈。這一圈結尾補 TURN，並在正下方新增下一個 R 列，游標跳過去
+  const turnToNextRound = (cell) => {
+    const row = text.rows.find((r) => r.id === cell.closest('[data-row]')?.dataset.row);
+    if (!row) return;
+    row.stitch = appendTurn(row.stitch);
+    const next = newRow('R');
+    insertAfterRow(text.rows, row.id, next);
+    render();
+    onChange();
+    host.querySelector(`[data-row="${next.id}"] [data-field="stitch"]`)?.focus();
+  };
+
+  host.addEventListener('focusin', (e) => {
+    if (e.target.matches?.('[data-field="stitch"]')) lastStitchCell = e.target;
+  });
+  // 手機鍵盤的 TURN 鍵：文字已經插入，這裡接著換到下一圈
+  host.addEventListener('ck-turn', (e) => {
+    const cell = e.target.closest?.('[data-field="stitch"]');
+    if (cell) turnToNextRound(cell);
+  });
+
   const bind = () => {
+    // pointerdown 就處理並擋掉預設行為，欄位才不會失去焦點與游標位置
+    host.querySelectorAll('[data-turn]').forEach((el) => {
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const cell = targetStitchCell();
+        if (cell) turnToNextRound(cell);
+      });
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('click', (e) => e.preventDefault());
+    });
+    host.querySelectorAll('[data-insert]').forEach((el) => {
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        insertToken(el.dataset.insert);
+      });
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('click', (e) => e.preventDefault());
+    });
     host.querySelectorAll('[data-row] [contenteditable]').forEach((el) => {
       const row = text.rows.find((r) => r.id === el.closest('[data-row]').dataset.row);
       el.addEventListener('input', () => {
@@ -282,7 +347,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
           const t = el.textContent.trim();
           const total = t ? countStitches(t) : null;
           if (total !== null) {
-            row.total = String(total);
+            row.total = total > 0 ? String(total) : ''; // 只有鎖針的圈（例如 15CH 起針）不算針目，總針數留空
             el.closest('[data-row]').querySelector('[data-field="total"]').textContent = row.total;
           }
         }

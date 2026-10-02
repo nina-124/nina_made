@@ -36,7 +36,7 @@ test('3D 預覽用：每個 R 帶著當下的顏色', () => {
   assert.deepEqual(tables[0].rows.map((r) => r.color), [TEXT_COLORS[0].hex, TEXT_COLORS[1].hex]);
 });
 
-import { insertInGroup, removeGroup } from '../js/text-rows.js';
+import { insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../js/text-rows.js';
 
 const withId = (row, id) => ({ ...row, id });
 
@@ -58,4 +58,18 @@ test('刪除一個 P 會連同它底下的列一起刪，不動其他 P，後面
   assert.equal(removeGroup(rows, 'p1'), 3);
   assert.deepEqual(rows.map((r) => r.id), ['p2', 'c']);
   assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1']);
+});
+
+test('TURN：在這一圈結尾補上 TURN，重複按不會重複加', () => {
+  assert.equal(appendTurn(''), 'TURN');
+  assert.equal(appendTurn('8X'), '8X, TURN');
+  assert.equal(appendTurn('8X, TURN'), '8X, TURN');
+  assert.equal(appendTurn('2X, DU, 6X'), '2X, DU, 6X, TURN');
+});
+
+test('TURN 換下一圈：新的一圈放在目前這圈的正下方，後面的編號順延', () => {
+  const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(R(), 'b')];
+  insertAfterRow(rows, 'a', withId(R(), 'new'));
+  assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new', 'b']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2', 'R3']);
 });

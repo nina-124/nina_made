@@ -254,7 +254,7 @@ function updateSubnavVisibility(section) {
   if (textsSubnav) textsSubnav.hidden = section !== 'texts' && section !== 'viewer';
 }
 
-async function onRoute(path) {
+async function renderRoute(path) {
   const container = document.getElementById('main-content');
   const section = path[0] || 'works';
 
@@ -290,6 +290,21 @@ async function onRoute(path) {
   } else {
     navigate(['works']);
   }
+}
+
+// 手機版頂部分類標籤可左右滑：換頁後把目前選中的標籤捲到標籤列正中央（桌面版是直式清單，不需要）
+function centerActiveTab() {
+  const strip = document.querySelector('#sidebar-nav .nav-section:not([hidden])');
+  const active = strip?.querySelector('.nav-subitem.active');
+  if (!active || strip.scrollWidth <= strip.clientWidth) return;
+  const s = strip.getBoundingClientRect();
+  const a = active.getBoundingClientRect();
+  strip.scrollBy({ left: a.left + a.width / 2 - (s.left + s.width / 2), behavior: 'smooth' });
+}
+
+async function onRoute(path) {
+  await renderRoute(path);
+  centerActiveTab();
 }
 
 renderShell();

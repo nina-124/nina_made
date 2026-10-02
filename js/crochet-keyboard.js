@@ -7,7 +7,7 @@ const STITCHES = [
   ['TV', '中加'], ['TA', '中減'], ['FV', '長加'], ['FA', '長減'], ['EV', '長長加'], ['EA', '長長減'],
   ['TW', '中3加'], ['TM', '中3減'], ['FW', '長3加'], ['FM', '長3減'], ['EW', '長長3加'], ['EM', '長長3減'],
   ['TCA', '中棗3'], ['TQ', '中棗4'], ['FCA', '長棗3'], ['PF', '泡芙5長'], ['TG', '中爆5'], ['FG', '長爆5'], ['EG', '長長爆5'],
-  ['BLO', '後半針'], ['FLO', '前半針'],
+  ['BLO', '後半針'], ['FLO', '前半針'], ['D', '倒數起'], ['TURN', '反面'], ['DU', '斷線'],
 ];
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const SYMBOLS = ['(', ')', '[', ']', '{', '}', ',', '-'];
@@ -47,6 +47,8 @@ function build() {
     if (!btn) return;
     if (btn.dataset.ckInsert !== undefined) {
       document.execCommand('insertText', false, btn.dataset.ckInsert);
+      // TURN 是「翻面並換下一圈」：文字插入後通知編輯器（圖解文本）接著新增下一圈；沒有編輯器接手時就只是文字
+      if (btn.dataset.ckInsert === 'TURN') document.activeElement?.dispatchEvent(new CustomEvent('ck-turn', { bubbles: true }));
     } else if (btn.hasAttribute('data-ck-delete')) {
       document.execCommand('delete');
     } else if (btn.dataset.ckTab) {

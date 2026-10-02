@@ -85,3 +85,16 @@ export function removeGroup(rows, pId) {
   if (!range) return 0;
   return rows.splice(range[0], range[1] - range[0]).length;
 }
+
+// TURN（翻面並換下一圈）：在這一圈針法的結尾補上 TURN；已經以 TURN 結尾就不重複加
+export function appendTurn(stitch) {
+  const t = String(stitch || '').trim();
+  if (!t) return 'TURN';
+  return /(^|[\s,，、])TURN$/i.test(t) ? t : `${t}, TURN`;
+}
+
+// 把新列放在指定列的正下方；找不到那一列就放到最後
+export function insertAfterRow(rows, rowId, row) {
+  const i = rows.findIndex((r) => r.id === rowId);
+  rows.splice(i === -1 ? rows.length : i + 1, 0, row);
+}

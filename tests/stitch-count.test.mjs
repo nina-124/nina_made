@@ -7,8 +7,8 @@ test('使用者範例一：括號前的數字是重複，CH 不算針，加針�
   assert.equal(countStitches('2CH, [3(X, V), X], 2X,  [3(X, V), X], 2X'), 24);
 });
 
-test('使用者範例二：SL 算針、5 是最外層重複次數（原本漏乘 5 的 6 是筆誤，正確為 30）', () => {
-  assert.equal(countStitches('5(SL, 4CH, 2[2(QTR)], 4CH, SL)'), 30);
+test('使用者範例二：5 是最外層重複次數；SL、CH 都不算針目，所以每次只有 2[2(QTR)] 的 4 針（SL 原本算 1 而得 30，改規則後為 20）', () => {
+  assert.equal(countStitches('5(SL, 4CH, 2[2(QTR)], 4CH, SL)'), 20);
 });
 
 test('基本針法與乘法', () => {
@@ -73,4 +73,31 @@ test('BLO 針數：整圈 BLO 與只有部分組別 BLO 要能分辨', () => {
   assert.deepEqual(analyzeStitches('8(2X, V, X)'), { total: 40, blo: 0 });
   assert.deepEqual(analyzeStitches('BLO(X, 2(V, X))'), { total: 7, blo: 7 });
   assert.equal(analyzeStitches('BLO'), null);
+});
+
+test('鎖針起針的兩側：D2 從倒數第 2 針開始，只影響入針位置（使用者實際的圖解）', () => {
+  assert.equal(countStitches('15CH'), 0); // 起針不算針目，從第 2 圈開始算
+  assert.equal(countStitches('D2 X, T, F, 8E, F, T, (X, SL)'), 14);
+  assert.equal(countStitches('X, T, F, 8E, F, T (X, SL)'), 14);
+  assert.equal(countStitches('D2X'), 1);
+});
+
+test('D 後面沒有數字或沒有接針法時視為看不懂', () => {
+  assert.equal(countStitches('D2'), null);
+  assert.equal(countStitches('(D2)'), null);
+  assert.equal(countStitches('D X'), null);
+});
+
+test('DU（斷線）與 TURN（反面）是標記，不算針（使用者的例子）', () => {
+  assert.equal(countStitches('8X'), 8);
+  assert.equal(countStitches('2X, DU, 6X'), 8);
+  assert.equal(countStitches('8X, DU'), 8);
+  assert.equal(countStitches('TURN'), 0);
+  assert.equal(countStitches('6X, TURN, 6X'), 12);
+});
+
+test('TURN 以 T 開頭但不是中長針：不能讓圈高變成 1.5', () => {
+  assert.equal(roundHeightOf('6X, TURN'), 1);
+  assert.equal(roundHeightOf('6T, TURN'), 1.5);
+  assert.equal(roundHeightOf('DU, 6X'), 1);
 });

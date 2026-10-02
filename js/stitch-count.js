@@ -1,17 +1,20 @@
 // 計算圖解「針法」欄的總針數。
 // 規則：數字在針法或括號前面代表乘法（2X、3(X,V)）；( ) [ ] { } 與全形括號都只是分組；
 // BLO（後半針）、FLO（前半針）寫在數字或針法前面，可接 -，例如 BLO8(X,V,X)、BLO-2(X,V,X)：只影響入針的位置，不影響針數；
-// 以逗號、頓號或空白分隔；CH、環起不算針，其餘每針算 1，加針類算 2、三加類算 3。
+// D 加數字（D2）表示從起針鎖針的倒數第 n 針開始鉤，只影響入針位置，不影響針數；
+// DU（斷線，下一針從斷線處的下一針繼續）、TURN（反面）是標記，不算針；
+// 以逗號、頓號或空白分隔；CH、SL、環起不算針，其餘每針算 1，加針類算 2、三加類算 3。
 // 遇到不認得的針法或括號不成對時回傳 null，由呼叫端決定如何顯示，避免算出錯的數字。
 
 const STITCH_COUNT = {
-  X: 1, T: 1, F: 1, E: 1, DTR: 1, QTR: 1, SL: 1,
+  X: 1, T: 1, F: 1, E: 1, DTR: 1, QTR: 1,
   V: 2, TV: 2, FV: 2, EV: 2,
   A: 1, TA: 1, FA: 1, EA: 1,
   W: 3, TW: 3, FW: 3, EW: 3,
   M: 1, TM: 1, FM: 1, EM: 1,
   TCA: 1, TQ: 1, FCA: 1, PF: 1, TG: 1, FG: 1, EG: 1, // 棗形針、泡芙針、爆米花針：一組都鉤在同一針目，算 1 針
-  CH: 0,
+  CH: 0, SL: 0, // 鎖針、引拔針都不算針目
+  DU: 0, TURN: 0, // 斷線、反面是標記，不算針目
 };
 
 // 每種針法的高度（以短針為 1，估計值）；同一圈混用多種針法時取最高的
@@ -54,6 +57,14 @@ export function analyzeStitches(text) {
       if (/^[,，、]$/.test(t)) {
         if (pendingBlo) return null;
         pos++;
+        continue;
+      }
+
+      // D2：從倒數第 2 針開始；後面一定要接針法或括號
+      if (t.toUpperCase() === 'D' && /^\d+$/.test(tokens[pos + 1] ?? '')) {
+        pos += 2;
+        const after = tokens[pos];
+        if (after === undefined || after === closer || CLOSE.has(after) || pendingBlo) return null;
         continue;
       }
 
@@ -112,7 +123,7 @@ export function roundHeightOf(text) {
   let height = 1;
   for (const t of tokenize(String(text || ''))) {
     const name = t.toUpperCase();
-    if (name in STITCH_COUNT) height = Math.max(height, stitchHeight(name));
+    if (STITCH_COUNT[name] > 0) height = Math.max(height, stitchHeight(name)); // 不算針的標記不影響圈高
   }
   return height;
 }

@@ -1,7 +1,6 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile, uploadImageFile, getRawFileBase64 } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { reorderById, bindDragReorder } from '../drag-reorder.js';
-import { mountDiagramPreview } from './diagram-preview.js';
 import { countStitches } from '../stitch-count.js';
 import { initCrochetKeyboard } from '../crochet-keyboard.js';
 
@@ -797,7 +796,7 @@ function bindTableSection(container, table, node, onStructureChange) {
         const text = htmlToText(cell.innerHTML).trim();
         const total = text ? countStitches(text) : null;
         if (total !== null) {
-          row.total = String(total);
+          row.total = total > 0 ? String(total) : ''; // 只有鎖針的圈（例如 15CH 起針）不算針目，總針數留空
           cell.closest('[data-row]').querySelector('[data-field="total"]').textContent = row.total;
         }
       }
@@ -964,7 +963,6 @@ async function renderPatternEditor(container, node, trail, ctx) {
         ${editMode ? `<button class="btn btn-secondary" id="add-table">&#65291; 新增部位表格</button>` : ''}
       </div>
     </div>
-    <section class="diagram-preview" id="diagram-preview"></section>
   `;
 
   bindCrumb(container, ctx);
@@ -1051,10 +1049,6 @@ async function renderPatternEditor(container, node, trail, ctx) {
       }
     );
   }
-
-  // 3D 元件從網路載入，不等它，以免擋住後面的編輯功能綁定
-  const previewReady = mountDiagramPreview(container.querySelector('#diagram-preview'), () => node.tables);
-  container.querySelector('.diagram-tables').addEventListener('input', () => previewReady.then((p) => p.refresh()));
 
   const addTableBtn = container.querySelector('#add-table');
   if (addTableBtn) {
