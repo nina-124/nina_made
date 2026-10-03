@@ -1,7 +1,7 @@
 // 針法欄是帶文字顏色的內容：要能讀出每個字的顏色，並且存檔時只留下三個換色。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStitchHtml, sanitizeStitchHtml } from '../js/stitch-html.js';
+import { parseStitchHtml, sanitizeStitchHtml, withClosingRound } from '../js/stitch-html.js';
 import { analyzeStitches } from '../js/stitch-count.js';
 
 test('讀出純文字與每個字的顏色（#色碼與瀏覽器改寫的 rgb() 都認得）', () => {
@@ -53,4 +53,23 @@ test('括號的括號本身有沒有上色不影響，裡面每個針法各看�
 test('COLn 標記仍然優先於文字顏色', () => {
   const { text, charColors } = parseStitchHtml('COL1 (<span style="color:#e9d28a">X</span>)');
   assert.deepEqual(analyzeStitches(text, charColors).colors, [0]);
+});
+
+test('收圈：圖解常省略結尾的 SL、CH，顯示與匯出時補上，這樣下一圈第一針才會和 SL 同一針目', () => {
+  assert.equal(withClosingRound('6X'), '6X, SL, CH');
+  assert.equal(withClosingRound('6(X, V)'), '6(X, V), SL, CH');
+  assert.equal(withClosingRound('6X, <span style="color:#a9c98f">V</span>'), '6X, <span style="color:#a9c98f">V</span>, SL, CH');
+});
+
+test('收圈：已經寫了就不重複；結尾只有 SL 只補 CH', () => {
+  assert.equal(withClosingRound('6X, SL, CH'), '6X, SL, CH');
+  assert.equal(withClosingRound('6X, SL, 2CH'), '6X, SL, 2CH');
+  assert.equal(withClosingRound('6X, SL'), '6X, SL, CH');
+});
+
+test('收圈：TURN、DU、只有鎖針的起針圈、空白都不補（它們沒有 SL 接回第一針的收圈）', () => {
+  assert.equal(withClosingRound('6X, TURN'), '6X, TURN');
+  assert.equal(withClosingRound('6X, DU'), '6X, DU');
+  assert.equal(withClosingRound('15CH'), '15CH');
+  assert.equal(withClosingRound(''), '');
 });

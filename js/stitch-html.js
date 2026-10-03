@@ -4,6 +4,7 @@
 //   sanitizeStitchHtml → 只留下三個換色的文字顏色，其他標籤、樣式一律拿掉，統一成 <span style="color:#色碼">
 
 import { TEXT_COLORS } from './text-colors.js';
+import { analyzeStitches } from './stitch-count.js';
 
 const decode = (t) => t.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const encode = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -65,4 +66,18 @@ export function sanitizeStitchHtml(html) {
   });
   flush();
   return out;
+}
+
+// 每圈結尾的收圈：最後一針之後 SL 接回本圈第一針、再 CH 一針（起立針）。圖解常省略不寫，所以顯示與匯出時自動補上；
+// 不補：空白、TURN（來回編織）、DU（斷線）、沒有任何針目的圈（例如只有鎖針的起針）；
+// 結尾已經是 CH 就當作寫過了，結尾是 SL 只補 CH。只回傳加長後的 HTML，不改存檔的內容。
+export function withClosingRound(html) {
+  const { text } = parseStitchHtml(html);
+  const tokens = text.match(/[A-Za-z]+|\d+/g) || [];
+  if (!tokens.length || tokens.some((t) => /^(TURN|DU)$/i.test(t))) return html;
+  const analysis = analyzeStitches(text);
+  if (analysis !== null && analysis.total === 0) return html;
+  const last = tokens[tokens.length - 1].toUpperCase();
+  if (last === 'CH') return html;
+  return `${String(html).trimEnd()}, ${last === 'SL' ? 'CH' : 'SL, CH'}`;
 }

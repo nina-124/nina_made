@@ -4,7 +4,7 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
-import { parseStitchHtml, sanitizeStitchHtml, colorIndexOf } from '../stitch-html.js';
+import { parseStitchHtml, sanitizeStitchHtml, colorIndexOf, withClosingRound } from '../stitch-html.js';
 import { applyTextColor, bindSeparatorColor, cellAtCaret, currentTextColor } from '../typing-color.js';
 import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
@@ -216,7 +216,8 @@ function tableHtml(text, editable) {
   const hasColorChange = text.rows.some((r) => r.kind === 'C' || (r.kind === 'R' && Number.isInteger(r.color)));
   const dot = (i) => `<span class="text-dot" style="background:${TEXT_COLORS[i].hex}"></span>`;
   const cell = (row, field, value) => {
-    const shown = field === 'stitch' ? sanitizeStitchHtml(value) : esc(value); // 針法欄帶文字顏色
+    // 針法欄帶文字顏色；唯讀顯示時自動補上結尾的 SL, CH，編輯時不動使用者打的字
+    const shown = field === 'stitch' ? (editable ? sanitizeStitchHtml(value) : withClosingRound(sanitizeStitchHtml(value))) : esc(value);
     // 針法、總針數欄都用鉤針專用鍵盤，不要彈出手機原生鍵盤（inputmode / virtualkeyboardpolicy）
     const noNativeKeyboard = ' inputmode="none" virtualkeyboardpolicy="manual"';
     return editable ? `<span class="cell-edit" contenteditable="true" data-field="${field}"${noNativeKeyboard}>${shown}</span>` : shown;

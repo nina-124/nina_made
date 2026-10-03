@@ -4,6 +4,7 @@ import { reorderById, bindDragReorder } from '../drag-reorder.js';
 import { countStitches } from '../stitch-count.js';
 import { initCrochetKeyboard } from '../crochet-keyboard.js';
 import { applyTextColor, bindSeparatorColor } from '../typing-color.js';
+import { withClosingRound } from '../stitch-html.js';
 
 const DATA_PATH = 'data/diagrams.json';
 
@@ -755,7 +756,7 @@ function renderTableSection(table, node) {
         <div class="cell">${
           editMode
             ? `<span class="cell-edit" contenteditable="true" data-field="stitch" inputmode="none" virtualkeyboardpolicy="manual">${row.stitch || ''}</span>`
-            : `<span>${row.stitch || ''}</span>`
+            : `<span>${withClosingRound(row.stitch || '')}</span>`
         }</div>
         <div class="cell cell-center">${
           editMode

@@ -5,7 +5,7 @@
 // 單獨一圈換色：R 列自己的 color（0～2）優先於前面的換色；單獨幾針換色直接上在針法文字的顏色上（見 stitch-html.js）。
 
 import { TEXT_COLORS } from './text-colors.js';
-import { sanitizeStitchHtml, parseStitchHtml } from './stitch-html.js';
+import { sanitizeStitchHtml, parseStitchHtml, withClosingRound } from './stitch-html.js';
 
 export { TEXT_COLORS };
 
@@ -70,7 +70,7 @@ export function textRowsToTables(rows, { withColor = false, makeId = newRowId } 
       const out = {
         id: makeId(),
         round: label,
-        stitch: withColor ? row.stitch || '' : exportStitchHtml(row.stitch, explicit ? TEXT_COLORS[colorIndex].hex : null),
+        stitch: withColor ? row.stitch || '' : exportStitchHtml(withClosingRound(row.stitch), explicit ? TEXT_COLORS[colorIndex].hex : null),
         total: row.total || '',
       };
       if (withColor) out.color = TEXT_COLORS[colorIndex].hex;

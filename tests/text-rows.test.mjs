@@ -26,7 +26,7 @@ test('換色只影響後面的圈，遇到新的 P 回到預設色', () => {
 test('匯出：每個 P 變成一張表，標題是 P1、P2，R 變成該表的列，且不帶顏色', () => {
   const tables = textRowsToTables([P(), R('6X', '6'), R('6V', '12'), P(), R('12X', '12')]);
   assert.deepEqual(tables.map((t) => t.part), ['P1', 'P2']);
-  assert.deepEqual(tables[0].rows.map((r) => [r.round, r.stitch, r.total]), [['R1', '6X', '6'], ['R2', '6V', '12']]);
+  assert.deepEqual(tables[0].rows.map((r) => [r.round, r.stitch, r.total]), [['R1', '6X, SL, CH', '6'], ['R2', '6V, SL, CH', '12']]);
   assert.deepEqual(tables[1].rows.map((r) => r.round), ['R1']);
   assert.ok(tables.every((t) => t.rows.every((r) => !('color' in r))));
 });
@@ -101,9 +101,9 @@ test('匯出到圖解：整圈換色讓整段針法用該色，單針換色蓋�
 test('匯出到圖解：沒有指定過顏色的圈不上色；有換色標記或單獨換色的圈才上色', () => {
   const rows = [P(), R('6X', '6'), C(1), R('6V', '12'), { ...R('8X', '8'), color: 2 }];
   const stitches = textRowsToTables(rows)[0].rows.map((r) => r.stitch);
-  assert.equal(stitches[0], '6X'); // 還沒換色，維持原樣
-  assert.equal(stitches[1], '<span style="color:#a9c98f">6V</span>');
-  assert.equal(stitches[2], '<span style="color:#e9d28a">8X</span>');
+  assert.equal(stitches[0], '6X, SL, CH'); // 還沒換色，維持原樣（結尾自動補收圈）
+  assert.equal(stitches[1], '<span style="color:#a9c98f">6V, SL, CH</span>');
+  assert.equal(stitches[2], '<span style="color:#e9d28a">8X, SL, CH</span>');
 });
 
 test('匯出到圖解：文字裡的 < > & 會被轉義，瀏覽器改寫的 rgb() 也統一成 #色碼', () => {
