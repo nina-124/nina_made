@@ -3,7 +3,8 @@
 
 import { analyzeStitches, roundHeightOf } from '../stitch-count.js';
 import { inflateProfile } from '../inflate-profile.js';
-import { TEXT_COLORS } from '../text-rows.js';
+import { TEXT_COLORS } from '../text-colors.js';
+import { parseStitchHtml } from '../stitch-html.js';
 
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
 const ROUND_HEIGHT = 1; // 短針一圈的高度；其他針法依 roundHeightOf 的倍數放大
@@ -40,13 +41,14 @@ export function analyzeTable(table) {
     const label = toPlainText(row.round).trim() || '?';
     const totalMatch = /\d+/.exec(toPlainText(row.total));
     const written = totalMatch ? Number(totalMatch[0]) : null;
-    const stitchText = toPlainText(row.stitch).trim();
+    const parsed = parseStitchHtml(row.stitch); // 純文字 + 每個字的文字顏色
+    const stitchText = parsed.text.trim();
 
     let count = null;
     let blo = false; // 整圈都挑後半針（BLO）：在 3D 預覽折出轉角
     let cells = null; // 每一針的顏色（COLn 標記），沒有指定就維持 null
     if (stitchText) {
-      const analysis = analyzeStitches(stitchText);
+      const analysis = analyzeStitches(parsed.text, parsed.charColors);
       count = analysis === null ? null : analysis.total;
       blo = analysis !== null && analysis.total > 0 && analysis.blo === analysis.total;
       if (analysis !== null && analysis.colors.some((c) => c !== null)) {

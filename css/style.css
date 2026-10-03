@@ -1079,3 +1079,20 @@ body.ck-open .main { padding-bottom: 360px; }
   cursor: pointer;
 }
 .text-round-dot.is-own { border-style: solid; border-color: rgba(54, 75, 53, 0.7); }
+
+/* 鉤針鍵盤收合後的 ▲ 按鈕：在下方導覽列上面，點一下再打開 */
+.ck-open-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 84px;
+  z-index: 40;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: #d3ecc4;
+  color: var(--green-800);
+  font-size: 22px;
+  box-shadow: 0 4px 14px rgba(54, 75, 53, 0.3);
+}
+.ck-open-btn[hidden] { display: none; }

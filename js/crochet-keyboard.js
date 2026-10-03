@@ -1,4 +1,5 @@
-// 觸控裝置專用的鉤針鍵盤：點選圖解表「針法」欄時從畫面底部彈出，取代系統鍵盤。
+// 觸控裝置專用的鉤針鍵盤：點選圖解表「針法」「總針數」「圈數」欄時從畫面底部彈出，取代手機原生鍵盤。
+// 收合後畫面右下角會留一個 ▲ 按鈕，點一下再打開。
 // 按鍵只把文字插入游標處，由原本的 input 事件負責存檔與計算，桌面版仍用實體鍵盤。
 
 const STITCHES = [
@@ -13,13 +14,40 @@ const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const SYMBOLS = ['(', ')', '[', ']', '{', '}', ',', '-'];
 
 const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-const isStitchCell = (el) => el instanceof Element && el.matches('[contenteditable][data-field="stitch"]');
+// 用鉤針鍵盤輸入的欄位：針法欄（針法頁），以及總針數、圈數欄（數字頁）
+const isKeyCell = (el) => el instanceof Element && el.matches('[contenteditable][data-field="stitch"], [contenteditable][data-field="total"], [contenteditable][data-field="round"]');
+const kindOf = (cell) => (cell.matches('[data-field="stitch"]') ? 'stitch' : 'digit');
 
-const key = (text, label, extra = '') =>
-  `<button type="button" class="ck-key ${extra}" data-ck-insert="${text}">${text}${label ? `<small>${label}</small>` : ''}</button>`;
+// insert：按下去實際輸入的文字（預設就是按鍵上的字）；逗號按一下會輸入「, 」
+const key = (text, label, extra = '', insert = text) =>
+  `<button type="button" class="ck-key ${extra}" data-ck-insert="${insert}">${text}${label ? `<small>${label}</small>` : ''}</button>`;
 
 let panel = null;
+let openBtn = null; // 收合後的 ▲ 按鈕
+let lastCell = null; // 最後在輸入的欄位
+let collapsedCell = null; // 收合時正在輸入的欄位，點 ▲ 回到這裡
+let lastKind = null;
 let initialized = false;
+
+function setTab(name) {
+  panel.querySelectorAll('.ck-tab').forEach((t) => t.classList.toggle('active', t.dataset.ckTab === name));
+  panel.querySelectorAll('[data-ck-page]').forEach((p) => {
+    p.hidden = p.dataset.ckPage !== name;
+  });
+}
+
+// ▲ 只在「已收合、而且輸入的欄位還在畫面上」時顯示
+function syncOpenButton() {
+  if (!openBtn) return;
+  openBtn.hidden = !(collapsedCell && collapsedCell.isConnected && panel.hidden);
+}
+
+function collapse() {
+  collapsedCell = isKeyCell(document.activeElement) ? document.activeElement : lastCell;
+  document.activeElement?.blur();
+  hide();
+  syncOpenButton();
+}
 
 function build() {
   panel = document.createElement('div');
@@ -34,11 +62,30 @@ function build() {
     <div class="ck-body" data-ck-page="stitch">${STITCHES.map(([c, l]) => key(c, l)).join('')}</div>
     <div class="ck-body" data-ck-page="digit" hidden>${DIGITS.map((d) => key(d, '')).join('')}</div>
     <div class="ck-foot">
-      ${SYMBOLS.map((s) => key(s, '', 'ck-symbol')).join('')}
+      ${SYMBOLS.map((s) => key(s, '', 'ck-symbol', s === ',' ? ', ' : s)).join('')}
       <button type="button" class="ck-key ck-symbol" data-ck-delete>&#9003;</button>
     </div>
   `;
   document.body.appendChild(panel);
+
+  openBtn = document.createElement('button');
+  openBtn.type = 'button';
+  openBtn.className = 'ck-open-btn';
+  openBtn.title = '打開鉤針鍵盤';
+  openBtn.innerHTML = '&#9650;';
+  openBtn.hidden = true;
+  document.body.appendChild(openBtn);
+  openBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (collapsedCell?.isConnected) collapsedCell.focus(); // 取得焦點就會自動打開鍵盤
+    syncOpenButton();
+  });
+  openBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  openBtn.addEventListener('click', (e) => e.preventDefault());
+  // 表格重新繪製時欄位會被換掉，▲ 跟著消失
+  new MutationObserver(() => {
+    if (!openBtn.hidden) syncOpenButton();
+  }).observe(document.body, { childList: true, subtree: true });
 
   // 在 pointerdown 就處理並擋掉預設行為，欄位才不會失去焦點與游標位置
   panel.addEventListener('pointerdown', (e) => {
@@ -52,12 +99,9 @@ function build() {
     } else if (btn.hasAttribute('data-ck-delete')) {
       document.execCommand('delete');
     } else if (btn.dataset.ckTab) {
-      panel.querySelectorAll('.ck-tab').forEach((t) => t.classList.toggle('active', t === btn));
-      panel.querySelectorAll('[data-ck-page]').forEach((p) => {
-        p.hidden = p.dataset.ckPage !== btn.dataset.ckTab;
-      });
+      setTab(btn.dataset.ckTab);
     } else if (btn.hasAttribute('data-ck-close')) {
-      document.activeElement?.blur();
+      collapse();
     }
   });
   panel.addEventListener('mousedown', (e) => e.preventDefault());
@@ -65,8 +109,22 @@ function build() {
 
 function show(cell) {
   if (!panel) build();
-  cell.setAttribute('inputmode', 'none'); // 不要彈出系統鍵盤
+  // 不要彈出手機原生鍵盤：欄位產生時就帶著這兩個屬性（見 texts.js、diagrams.js）；
+  // 舊的欄位沒有的話補上並重新取得焦點，系統鍵盤才不會已經跳出來
+  if (!cell.hasAttribute('inputmode')) {
+    cell.setAttribute('inputmode', 'none');
+    cell.setAttribute('virtualkeyboardpolicy', 'manual');
+    cell.blur();
+    cell.focus();
+    return;
+  }
+  // 換了欄位種類（針法 ↔ 數字）或剛打開時，切到對應的頁；同一種欄位之間移動不打斷你手動切的頁
+  const kind = kindOf(cell);
+  if (panel.hidden || kind !== lastKind) setTab(kind);
+  lastKind = kind;
+  lastCell = cell;
   panel.hidden = false;
+  syncOpenButton();
   document.body.classList.add('ck-open');
   setTimeout(() => cell.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
 }
@@ -81,12 +139,15 @@ export function initCrochetKeyboard() {
   if (initialized) return;
   initialized = true;
   document.addEventListener('focusin', (e) => {
-    if (isTouch() && isStitchCell(e.target)) show(e.target);
+    if (isTouch() && isKeyCell(e.target)) show(e.target);
   });
   document.addEventListener('focusout', () => {
-    // 焦點在針法欄之間移動時不要收合
+    // 焦點在這些欄位之間移動時不要收合
     setTimeout(() => {
-      if (!isStitchCell(document.activeElement)) hide();
+      if (!isKeyCell(document.activeElement)) {
+        hide();
+        syncOpenButton();
+      }
     }, 0);
   });
 }

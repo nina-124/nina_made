@@ -35,19 +35,30 @@ const OPEN = { '(': ')', '（': '）', '[': ']', '［': '］', '【': '】', '{'
 const CLOSE = new Set(Object.values(OPEN));
 const TOKEN = /\s*(\d+|[A-Za-z]+|[()（）[\]［］【】{}｛｝]|[,，、]|\S)/gy;
 
-function tokenize(text) {
+// 每個 token 在原文裡的起點也一併記下來，用來查那個字的顏色
+function tokenizeWithPos(text) {
   const tokens = [];
+  const starts = [];
   TOKEN.lastIndex = 0;
   let m;
-  while ((m = TOKEN.exec(text)) !== null) tokens.push(m[1]);
-  return tokens;
+  while ((m = TOKEN.exec(text)) !== null) {
+    tokens.push(m[1]);
+    starts.push(m.index + m[0].length - m[1].length);
+  }
+  return { tokens, starts };
+}
+
+function tokenize(text) {
+  return tokenizeWithPos(text).tokens;
 }
 
 // 回傳 { total, blo, colors }；看不懂時回傳 null
 //   total：這一圈的總針數；blo：其中挑後半針（BLO）入針的針數
 //   colors：長度等於 total，依針的順序記錄每一針的顏色（0～2，沒指定為 null）
-export function analyzeStitches(text) {
-  const tokens = tokenize(String(text || ''));
+// charColors：原文每個字元的顏色（0～2 或 null），針法那幾個字被上了顏色，那一針就是該色；
+//   優先順序：COLn 標記 > 外層括號的 COLn > 字元顏色
+export function analyzeStitches(text, charColors = null) {
+  const { tokens, starts } = tokenizeWithPos(String(text || ''));
   let pos = 0;
   const startsItem = (tk) => tk !== undefined && (/^\d+$/.test(tk) || OPEN[tk] || tk.toUpperCase() in STITCH_COUNT);
 
@@ -125,7 +136,8 @@ export function analyzeStitches(text) {
         if (per === undefined) return null;
         value = per;
         bloValue = blo ? per : 0;
-        itemColors = Array(per).fill(color);
+        const ownColor = color ?? (charColors ? charColors[starts[pos]] ?? null : null);
+        itemColors = Array(per).fill(ownColor);
         pos++;
       }
       sum += times * value;

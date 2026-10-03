@@ -2,13 +2,12 @@
 // 一份文本是一串列：P＝部位（開一張新表）、R＝圈、C＝換色標記。
 // 標記不存檔，每次依順序算出：P 依序 P1、P2…；R 在每個 P 底下重新從 R1 開始。
 // 換色只影響它後面的 R，直到下一個換色；遇到新的 P 就回到預設色（第一個顏色）。
-// 單獨一圈換色：R 列自己的 color（0～2）優先於前面的換色；單獨幾針換色寫在針法文字裡（COL2 (3X)）。
+// 單獨一圈換色：R 列自己的 color（0～2）優先於前面的換色；單獨幾針換色直接上在針法文字的顏色上（見 stitch-html.js）。
 
-export const TEXT_COLORS = [
-  { name: '粉橘', hex: '#e7b7a3' },
-  { name: '綠', hex: '#a9c98f' },
-  { name: '黃', hex: '#e9d28a' },
-];
+import { TEXT_COLORS } from './text-colors.js';
+import { sanitizeStitchHtml, parseStitchHtml } from './stitch-html.js';
+
+export { TEXT_COLORS };
 
 let seq = 0;
 export function newRowId() {
@@ -49,46 +48,10 @@ export function labelRows(rows) {
   });
 }
 
-// ---- 匯出到圖解：顏色轉成圖解編輯用的文字顏色（<span style="color:#色碼">），之後在圖解裡可以改成實際的顏色 ----
-const OPENERS = '([{（［【｛';
-const CLOSERS = ')]}）］】｝';
-const escapeHtml = (t) => String(t ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-
-// COLn 後面那一項（可帶前面的數字、BLO/FLO）的結尾位置
-function itemEnd(text, from) {
-  let j = from;
-  const skip = (re) => { const m = re.exec(text.slice(j)); if (m) j += m[0].length; };
-  skip(/^\d+\s*/);
-  skip(/^(BLO|FLO)\s*-?\s*\d*\s*/i);
-  if (OPENERS.includes(text[j] ?? ' ')) {
-    let depth = 0;
-    for (; j < text.length; j++) {
-      if (OPENERS.includes(text[j])) depth++;
-      else if (CLOSERS.includes(text[j]) && --depth === 0) return j + 1;
-    }
-    return text.length;
-  }
-  skip(/^[A-Za-z]+/);
-  return j;
-}
-
-// 針法文字轉成帶顏色的 HTML：COLn 標記拿掉、後面那一項用該色；roundHex 有值就整段先用這個顏色
-export function colorizeStitchHtml(text, roundHex = null) {
-  const src = String(text || '');
-  const re = /\bCOL\s*-?\s*([1-3])\s*/gi;
-  let out = '';
-  let i = 0;
-  let m;
-  while ((m = re.exec(src)) !== null) {
-    out += escapeHtml(src.slice(i, m.index));
-    const start = m.index + m[0].length;
-    const end = itemEnd(src, start);
-    out += `<span style="color:${TEXT_COLORS[Number(m[1]) - 1].hex}">${escapeHtml(src.slice(start, end))}</span>`;
-    i = end;
-    re.lastIndex = end;
-  }
-  out += escapeHtml(src.slice(i));
-  return roundHex ? `<span style="color:${roundHex}">${out}</span>` : out;
+// 匯出到圖解：針法欄本來就是圖解編輯用的文字顏色格式；整圈換色就再外包一層，單針的顏色蓋在它上面
+export function exportStitchHtml(html, roundHex = null) {
+  const body = sanitizeStitchHtml(html);
+  return roundHex ? `<span style="color:${roundHex}">${body}</span>` : body;
 }
 
 // 轉成圖解的表格結構（表格＝部位，列＝圈）。withColor 給 3D 預覽用；匯出到圖解時不帶顏色
@@ -107,7 +70,7 @@ export function textRowsToTables(rows, { withColor = false, makeId = newRowId } 
       const out = {
         id: makeId(),
         round: label,
-        stitch: withColor ? row.stitch || '' : colorizeStitchHtml(row.stitch, explicit ? TEXT_COLORS[colorIndex].hex : null),
+        stitch: withColor ? row.stitch || '' : exportStitchHtml(row.stitch, explicit ? TEXT_COLORS[colorIndex].hex : null),
         total: row.total || '',
       };
       if (withColor) out.color = TEXT_COLORS[colorIndex].hex;
@@ -141,9 +104,10 @@ export function removeGroup(rows, pId) {
 
 // TURN（翻面並換下一圈）：在這一圈針法的結尾補上 TURN；已經以 TURN 結尾就不重複加
 export function appendTurn(stitch) {
-  const t = String(stitch || '').trim();
-  if (!t) return 'TURN';
-  return /(^|[\s,，、])TURN$/i.test(t) ? t : `${t}, TURN`;
+  const html = sanitizeStitchHtml(stitch);
+  const text = parseStitchHtml(html).text.trim();
+  if (!text) return 'TURN';
+  return /(^|[\s,，、])TURN$/i.test(text) ? html : `${html.trimEnd()}, TURN`;
 }
 
 // 把新列放在指定列的正下方；找不到那一列就放到最後

@@ -740,17 +740,17 @@ function renderTableSection(table, node) {
       <div class="diagram-grid-row" data-row="${row.id}">
         <div class="cell cell-center">${
           editMode
-            ? `<span class="cell-edit" contenteditable="true" data-field="round">${row.round || ''}</span>`
+            ? `<span class="cell-edit" contenteditable="true" data-field="round" inputmode="none" virtualkeyboardpolicy="manual">${row.round || ''}</span>`
             : `<span>${row.round || ''}</span>`
         }</div>
         <div class="cell">${
           editMode
-            ? `<span class="cell-edit" contenteditable="true" data-field="stitch">${row.stitch || ''}</span>`
+            ? `<span class="cell-edit" contenteditable="true" data-field="stitch" inputmode="none" virtualkeyboardpolicy="manual">${row.stitch || ''}</span>`
             : `<span>${row.stitch || ''}</span>`
         }</div>
         <div class="cell cell-center">${
           editMode
-            ? `<span class="cell-edit" contenteditable="true" data-field="total">${row.total || ''}</span>`
+            ? `<span class="cell-edit" contenteditable="true" data-field="total" inputmode="none" virtualkeyboardpolicy="manual">${row.total || ''}</span>`
             : `<span>${row.total || ''}</span>`
         }</div>
         ${editMode ? `<div class="cell"><button class="del-btn" data-del-row style="position:static;">&#10005;</button></div>` : ''}

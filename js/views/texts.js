@@ -4,6 +4,7 @@
 import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
+import { parseStitchHtml, sanitizeStitchHtml, colorIndexOf } from '../stitch-html.js';
 import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
 import { mountDiagramPreview } from './diagram-preview.js';
@@ -213,10 +214,12 @@ function tableHtml(text, editable) {
   const labeled = labelRows(text.rows);
   const hasColorChange = text.rows.some((r) => r.kind === 'C' || (r.kind === 'R' && Number.isInteger(r.color)));
   const dot = (i) => `<span class="text-dot" style="background:${TEXT_COLORS[i].hex}"></span>`;
-  const cell = (row, field, value) =>
-    editable
-      ? `<span class="cell-edit" contenteditable="true" data-field="${field}">${esc(value)}</span>`
-      : esc(value);
+  const cell = (row, field, value) => {
+    const shown = field === 'stitch' ? sanitizeStitchHtml(value) : esc(value); // 針法欄帶文字顏色
+    // 針法、總針數欄都用鉤針專用鍵盤，不要彈出手機原生鍵盤（inputmode / virtualkeyboardpolicy）
+    const noNativeKeyboard = ' inputmode="none" virtualkeyboardpolicy="manual"';
+    return editable ? `<span class="cell-edit" contenteditable="true" data-field="${field}"${noNativeKeyboard}>${shown}</span>` : shown;
+  };
 
   const rows = labeled
     .map(({ row, label, colorIndex, explicit }, i) => {
@@ -230,7 +233,7 @@ function tableHtml(text, editable) {
               <button type="button" class="btn btn-secondary text-mini" data-add-in="${row.id}" data-kind="R">＋R</button>
               ${TEXT_COLORS.map(
                 (c, i) =>
-                  `<button type="button" class="text-mini-dot" data-add-in="${row.id}" data-kind="C" data-color="${i}" title="${c.name}：有選取針法文字就幫選取的針上色，沒有選取就在 ${label} 底下加入換色列" style="background:${c.hex}"></button>`
+                  `<button type="button" class="text-mini-dot" data-add-in="${row.id}" data-kind="C" data-color="${i}" title="${c.name}：有選取針法文字就讓選取的字變色（再按一次取消），沒有選取就在 ${label} 底下加入換色列" style="background:${c.hex}"></button>`
               ).join('')}
             </div>`
           : '<div></div>';
@@ -307,14 +310,43 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     return cell;
   };
 
-  // 目前選取的針法文字（沒有選取、或選取不在針法欄裡就回傳 null）
-  const selectedStitchText = () => {
+  // 目前選取的針法文字範圍（沒有選取、或選取不在針法欄裡就回傳 null）
+  const selectedStitchRange = () => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
-    const node = sel.getRangeAt(0).commonAncestorContainer;
+    const range = sel.getRangeAt(0);
+    const node = range.commonAncestorContainer;
     const cell = (node.nodeType === 1 ? node : node.parentElement)?.closest?.('[data-field="stitch"]');
-    const text = sel.toString().trim();
-    return cell && host.contains(cell) && text ? text : null;
+    return cell && host.contains(cell) && sel.toString().trim() ? { cell, range } : null;
+  };
+
+  // 選到的字是不是全部都已經是同一個換色（是 → 回傳那個顏色的編號，否則 null）
+  const selectionColor = ({ cell, range }) => {
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    let found = null;
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const start = node === range.startContainer ? range.startOffset : 0;
+      const end = node === range.endContainer ? range.endOffset : node.length;
+      if (!range.intersectsNode(node) || start >= end || !node.textContent.slice(start, end).trim()) continue;
+      const index = colorIndexOf(getComputedStyle(node.parentElement).color);
+      if (index === null || (found !== null && found !== index)) return null;
+      found = index;
+    }
+    return found;
+  };
+
+  // 色點：有選取針法文字 → 那些字直接變成該顏色（已經是同一個顏色就取消）；回傳 false 表示沒有選取
+  const colorSelection = (n) => {
+    const selected = selectedStitchRange();
+    if (!selected) return false;
+    if (selectionColor(selected) === n) {
+      document.execCommand('removeFormat');
+    } else {
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand('foreColor', false, TEXT_COLORS[n].hex);
+    }
+    return true; // 會觸發 input 事件，原本的存檔與計算照常運作
   };
 
   // 把標記插入針法欄的游標處（DU）；會觸發 input 事件，原本的存檔與計算照常運作
@@ -365,10 +397,10 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-row] [contenteditable]').forEach((el) => {
       const row = text.rows.find((r) => r.id === el.closest('[data-row]').dataset.row);
       el.addEventListener('input', () => {
-        row[el.dataset.field] = el.textContent;
+        row[el.dataset.field] = el.dataset.field === 'stitch' ? sanitizeStitchHtml(el.innerHTML) : el.textContent;
         if (el.dataset.field === 'stitch') {
           // 針法能解析就自動填總針數；解析不了（或清空）就保留手填的數字
-          const t = el.textContent.trim();
+          const t = parseStitchHtml(row.stitch).text.trim();
           const total = t ? countStitches(t) : null;
           if (total !== null) {
             row.total = total > 0 ? String(total) : ''; // 只有鎖針的圈（例如 15CH 起針）不算針目，總針數留空
@@ -408,13 +440,11 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
         el.addEventListener('click', () => addRow(newRow('R'), true, el.dataset.addIn));
         return;
       }
-      // P 列的色點也一樣：有選取針法文字 → 幫選取的針上色；沒有選取 → 在這個 P 底下新增換色標記
+      // P 列的色點也一樣：有選取針法文字 → 選取的字直接變色；沒有選取 → 在這個 P 底下新增換色標記
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         const n = Number(el.dataset.color);
-        const selected = selectedStitchText();
-        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected})`);
-        else addRow(newRow('C', n), false, el.dataset.addIn);
+        if (!colorSelection(n)) addRow(newRow('C', n), false, el.dataset.addIn);
       });
       el.addEventListener('mousedown', (e) => e.preventDefault());
       el.addEventListener('click', (e) => e.preventDefault());
@@ -438,14 +468,12 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
         addRow(newRow(kind), kind === 'R');
       });
     });
-    // 色點：有選取針法文字 → 把選取的那幾針包成 COLn (…)；沒有選取 → 新增一列換色標記
+    // 色點：有選取針法文字 → 選取的字直接變色；沒有選取 → 新增一列換色標記
     host.querySelectorAll('[data-add-color]').forEach((el) => {
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault(); // 不要讓選取消失
         const n = Number(el.dataset.addColor);
-        const selected = selectedStitchText();
-        if (selected) document.execCommand('insertText', false, `COL${n + 1} (${selected})`);
-        else addRow(newRow('C', n), false);
+        if (!colorSelection(n)) addRow(newRow('C', n), false);
       });
       el.addEventListener('mousedown', (e) => e.preventDefault());
       el.addEventListener('click', (e) => e.preventDefault());
