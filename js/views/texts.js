@@ -224,11 +224,10 @@ function tableHtml(text, editable) {
   };
 
   const rows = labeled
-    .map(({ row, label, colorIndex, explicit }, i) => {
+    .map(({ row, label, colorIndex, explicit }) => {
       const del = editable
         ? `<div><button class="del-btn" ${row.kind === 'P' ? 'data-del-part' : 'data-del-row'}="${row.id}" title="${row.kind === 'P' ? `刪除 ${label} 與它底下的列` : '刪除這一列'}" style="position:static;">&#10005;</button></div>`
         : '';
-      const idx = `<div class="text-cell-idx">${i + 1}</div>`;
       if (row.kind === 'P') {
         const partTools = editable
           ? `<div class="text-part-tools">
@@ -239,12 +238,12 @@ function tableHtml(text, editable) {
               ).join('')}
             </div>`
           : '<div></div>';
-        return `<div class="text-row text-row-p" data-row="${row.id}">${idx}<div class="text-cell-label">${label}</div>${partTools}<div></div>${del}</div>`;
+        return `<div class="text-row text-row-p" data-row="${row.id}"><div class="text-cell-label">${label}</div>${partTools}<div></div>${del}</div>`;
       }
       if (row.kind === 'C') {
-        return `<div class="text-row text-row-c" data-row="${row.id}">${idx}<div class="text-cell-label">${dot(colorIndex)}</div><div>換色：${TEXT_COLORS[colorIndex].name}</div><div></div>${del}</div>`;
+        return `<div class="text-row text-row-c" data-row="${row.id}"><div class="text-cell-label">${dot(colorIndex)}</div><div>換色：${TEXT_COLORS[colorIndex].name}</div><div></div>${del}</div>`;
       }
-      return `<div class="text-row" data-row="${row.id}">${idx}
+      return `<div class="text-row" data-row="${row.id}">
         <div class="text-cell-label">${
           editable
             ? roundDotButton(row, colorIndex, explicit)
