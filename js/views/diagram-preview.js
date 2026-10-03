@@ -9,7 +9,6 @@ import { parseStitchHtml } from '../stitch-html.js';
 const STITCH_WIDTH = 1; // 一針是正方形（寬 = 高），單位任意，之後自動縮放取景
 const ROUND_HEIGHT = 1; // 短針一圈的高度；其他針法依 roundHeightOf 的倍數放大
 const CLOSE_THRESHOLD = 8; // 首/末圈針數不超過這個值就當作收口成一點（圓環起針、最後收針）
-const PART_SLOT = 30; // 「全部」檢視時每個部位固定佔的寬度；位置只看順序，改一個部位不會推動其他部位
 const PART_COLORS = [0xe7b7a3, 0xa9c98f, 0xe9d28a, 0x9fc3d6, 0xc9a9d6, 0xd6a39f];
 
 function toPlainText(html) {
@@ -164,7 +163,7 @@ export async function mountDiagramPreview(host, getTables) {
   const group = new THREE.Group();
   scene.add(group);
 
-  let selected = 'all';
+  let selected = 0; // 一次只看一個部位（第幾個），不提供「全部」，也不把部位接在一起
   let needsFit = true;
   let analyzed = [];
 
@@ -198,11 +197,11 @@ export async function mountDiagramPreview(host, getTables) {
   function rebuild() {
     const tables = getTables() || [];
     analyzed = tables.map((t) => ({ part: toPlainText(t.part).trim() || '未命名', ...analyzeTable(t) }));
+    if (selected >= analyzed.length) selected = Math.max(analyzed.length - 1, 0); // 部位被刪掉時改看最後一個
 
     chipsEl.innerHTML = '';
     if (analyzed.length > 1) {
-      if (selected !== 'all' && !analyzed[selected]) selected = 'all';
-      [['all', '全部'], ...analyzed.map((a, i) => [i, a.part])].forEach(([key, label]) => {
+      analyzed.map((a, i) => [i, a.part]).forEach(([key, label]) => {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = `diagram-preview-chip${key === selected ? ' active' : ''}`;
@@ -219,7 +218,7 @@ export async function mountDiagramPreview(host, getTables) {
 
     clearGroup();
     analyzed.forEach((a, i) => {
-      if (selected !== 'all' && selected !== i) return;
+      if (selected !== i) return;
       if (!a.rounds.length) return;
       const partColor = PART_COLORS[i % PART_COLORS.length];
       const profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT, partColor);
@@ -233,17 +232,16 @@ export async function mountDiagramPreview(host, getTables) {
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.x = selected === 'all' ? i * PART_SLOT : 0;
       group.add(mesh);
     });
 
     msgEl.textContent = group.children.length ? '' : '填寫「針法」後，這裡會顯示預覽';
     warningsEl.innerHTML = '';
     analyzed.forEach((a, i) => {
-      if (selected !== 'all' && selected !== i) return; // 單獨檢視某個部位時，不顯示其他部位的警告
+      if (selected !== i) return; // 只顯示目前這個部位的警告
       a.warnings.forEach((w) => {
         const li = document.createElement('li');
-        li.textContent = `${selected === 'all' && analyzed.length > 1 ? `${a.part}・` : ''}${w}`;
+        li.textContent = w;
         warningsEl.appendChild(li);
       });
     });

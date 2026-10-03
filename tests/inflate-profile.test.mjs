@@ -95,3 +95,64 @@ test('有 BLO 折點分段時，節點與取樣點的對應也一致', () => {
   const pts = inflateProfile(rs, opts);
   assert.equal(pts.sub * (pts.nodeRound.length - 1) + 1, pts.length);
 });
+
+// 每個節點（圈）的半徑：取樣點每隔 sub 個就是一個節點
+const nodeRadii = (pts) => pts.filter((_, i) => i % pts.sub === 0).map((p) => p[0]);
+
+test('每兩圈才增一次針的圖解（P3：6,6,9,12,12,…）要是順順的圓錐，不是一階一階的', () => {
+  const counts = [6, 6, 9, 12, 12, 15, 15, 18, 18, 20];
+  const radii = nodeRadii(inflateProfile(rounds(counts), opts));
+  // 沒磨順時，平圈（6,6、12,12…）的半徑會一樣，形成階梯；磨順後每一圈都要比前一圈大
+  for (let i = 2; i < radii.length; i++) assert.ok(radii[i] > radii[i - 1] + 1e-6, `第 ${i} 個節點 ${radii[i]} 沒有比前一個 ${radii[i - 1]} 大`);
+});
+
+test('磨順不影響極點與需要保持的形狀：球仍是球，圓筒仍是圓柱', () => {
+  const ball = inflateProfile(rounds([6, 12, 18, 24, 30, 24, 18, 12, 6]), opts);
+  const width = 2 * Math.max(...ball.map((p) => p[0]));
+  const height = Math.max(...ball.map((p) => p[1])) - Math.min(...ball.map((p) => p[1]));
+  assert.ok(Math.abs(width - height) / Math.max(width, height) < 0.1);
+  assert.equal(ball[0][0], 0); // 極點仍在軸線上
+});
+
+const dims = (pts) => ({
+  width: 2 * Math.max(...pts.map((p) => p[0])),
+  height: Math.max(...pts.map((p) => p[1])) - Math.min(...pts.map((p) => p[1])),
+});
+
+test('P2（8,16,24,32,40,45：每圈增針超過平圓盤放得下的量、沒收口）是開口的半球', () => {
+  const pts = inflateProfile(rounds([8, 16, 24, 32, 40, 45]), opts);
+  const { width, height } = dims(pts);
+  assert.ok(Math.abs(width / 2 - height) / height < 0.1, `半球的高應該是寬的一半，寬 ${width} 高 ${height}`);
+  // 邊緣是直立的（赤道）：最後兩個取樣點的半徑幾乎一樣
+  const rim = pts.slice(-2).map((p) => p[0]);
+  assert.ok(Math.abs(rim[0] - rim[1]) < 0.15);
+  assert.equal(pts[0][0], 0); // 底部是極點
+});
+
+test('每圈增針沒超過平圓盤放得下的量（+6 的杯墊）仍然是平的圓盤，不會被誤判成碗', () => {
+  const { width, height } = dims(inflateProfile(rounds([6, 12, 18, 24, 30, 36]), opts));
+  assert.ok(height < width / 4, `杯墊應該是平的，寬 ${width} 高 ${height}`);
+});
+
+test('半球的半徑不會超過各圈針數撐得出的周長', () => {
+  const counts = [8, 16, 24, 32, 40, 45];
+  const limit = Math.max(...counts) / (2 * Math.PI);
+  assert.ok(Math.max(...inflateProfile(rounds(counts), opts).map((p) => p[0])) <= limit + 1e-6);
+});
+
+test('最後一圈是 BLO（P1：…36,36,36 然後 BLO-36X）：不折成朝內的蓋子，最後一圈留在側壁上、側面看得到顏色', () => {
+  const counts = [6, 12, 18, ...Array(15).fill(18), 24, 30, 36, 36, 36, 36];
+  const rs = rounds(counts);
+  rs[counts.length - 1].blo = true;
+  const pts = inflateProfile(rs, opts);
+  // 最後一圈的那一段：垂直方向的位移要比水平方向大（在壁面上），不是水平朝內的蓋子
+  const [r1, y1] = pts[pts.length - 1 - pts.sub];
+  const [r2, y2] = pts[pts.length - 1];
+  assert.ok(y2 - y1 > Math.abs(r2 - r1), `最後一圈應該在壁面上，dy=${y2 - y1} dr=${r2 - r1}`);
+});
+
+test('不是最後一圈的 BLO 仍然折出轉角（後面還有圈數接續）', () => {
+  const rs = rounds([6, 12, 18, 24, 24, 24, 24, 24]);
+  rs[4].blo = true;
+  assert.ok(sharpestTurn(inflateProfile(rs, opts)) > 60);
+});
