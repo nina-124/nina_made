@@ -68,16 +68,21 @@ export function sanitizeStitchHtml(html) {
   return out;
 }
 
-// 每圈結尾的收圈：最後一針之後 SL 接回本圈第一針、再 CH 一針（起立針）。圖解常省略不寫，所以顯示與匯出時自動補上；
-// 不補：空白、TURN（來回編織）、DU（斷線）、沒有任何針目的圈（例如只有鎖針的起針）；
-// 結尾已經是 CH 就當作寫過了，結尾是 SL 只補 CH。只回傳加長後的 HTML，不改存檔的內容。
+// 每圈結尾的收尾針法。圖解常省略不寫，所以顯示與匯出時自動補上，只回傳加長後的 HTML，不改存檔的內容：
+//   一般的圈：最後一針之後 SL 接回本圈第一針、再 CH 一針（起立針）；結尾已經是 CH 就當作寫過了，結尾是 SL 只補 CH
+//   翻面的圈（結尾是 TURN）：TURN 前先 CH 一針，例如 6X, TURN → 6X, CH, TURN；TURN 前已經是 CH 就不重複
+// 不補：空白、DU（斷線）、沒有任何針目的圈（例如只有鎖針的起針）、只有 TURN 沒有針法的圈。
 export function withClosingRound(html) {
   const { text } = parseStitchHtml(html);
   const tokens = text.match(/[A-Za-z]+|\d+/g) || [];
-  if (!tokens.length || tokens.some((t) => /^(TURN|DU)$/i.test(t))) return html;
+  if (!tokens.length || tokens.some((t) => /^DU$/i.test(t))) return html;
   const analysis = analyzeStitches(text);
   if (analysis !== null && analysis.total === 0) return html;
   const last = tokens[tokens.length - 1].toUpperCase();
-  if (last === 'CH') return html;
+  if (last === 'TURN') {
+    if (tokens.length === 1 || tokens[tokens.length - 2].toUpperCase() === 'CH') return html;
+    return String(html).replace(/TURN(?![\s\S]*TURN)/i, 'CH, $&');
+  }
+  if (tokens.some((t) => /^TURN$/i.test(t)) || last === 'CH') return html; // TURN 不在結尾：使用者自己安排，不動
   return `${String(html).trimEnd()}, ${last === 'SL' ? 'CH' : 'SL, CH'}`;
 }

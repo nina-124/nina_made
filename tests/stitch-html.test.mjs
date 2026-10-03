@@ -67,8 +67,14 @@ test('收圈：已經寫了就不重複；結尾只有 SL 只補 CH', () => {
   assert.equal(withClosingRound('6X, SL'), '6X, SL, CH');
 });
 
-test('收圈：TURN、DU、只有鎖針的起針圈、空白都不補（它們沒有 SL 接回第一針的收圈）', () => {
-  assert.equal(withClosingRound('6X, TURN'), '6X, TURN');
+test('翻面：TURN 前先 CH 一針，已經有 CH 就不重複', () => {
+  assert.equal(withClosingRound('6X, TURN'), '6X, CH, TURN');
+  assert.equal(withClosingRound('6X, CH, TURN'), '6X, CH, TURN');
+  assert.equal(withClosingRound('6X, <span style="color:#a9c98f">TURN</span>'), '6X, <span style="color:#a9c98f">CH, TURN</span>');
+  assert.equal(withClosingRound('TURN'), 'TURN');
+});
+
+test('收圈：DU、只有鎖針的起針圈、空白都不補（它們沒有 SL 接回第一針的收圈）', () => {
   assert.equal(withClosingRound('6X, DU'), '6X, DU');
   assert.equal(withClosingRound('15CH'), '15CH');
   assert.equal(withClosingRound(''), '');
