@@ -263,12 +263,15 @@ function tableHtml(text, editable) {
 function mountTableEditor(host, text, { compact = false, onChange = () => {} } = {}) {
   let lastStitchCell = null; // 最後編輯的針法欄：按 TURN / DU 時把文字插入這裡
   const render = () => {
+    // 手機：工具列用精簡版省版面；觸控裝置有鉤針鍵盤，TURN、DU 在鍵盤上，工具列就不放
+    const phone = window.matchMedia('(max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px)').matches;
+    const hasKeyboard = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     host.innerHTML = `
       <div class="text-editor">
         <div class="text-table-wrap">${tableHtml(text, editMode)}</div>
         ${
           editMode
-            ? compact
+            ? compact || phone
               ? `<div class="text-tools text-tools-compact">
                   <button class="btn btn-secondary text-tool" data-add="P" title="新增 P（自動序號）">P</button>
                   <button class="btn btn-secondary text-tool" data-add="R" title="新增 R（自動序號）">R</button>
@@ -277,8 +280,12 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
                       `<button type="button" class="text-mini-dot text-color-btn" data-add-color="${i}" title="換色：${c.name}" style="background:${c.hex}"></button>`
                   ).join('')}
                   <button type="button" class="text-mini-dot text-color-btn text-color-default" data-default-color title="黑色（預設）：先選顏色再打字"></button>
-                  <button class="btn btn-secondary text-tool text-tool-token" data-turn title="TURN：翻面並換下一圈">TURN</button>
-                  <button class="btn btn-secondary text-tool text-tool-token" data-insert="DU" title="插入 DU（斷線）">DU</button>
+                  ${
+                    hasKeyboard
+                      ? ''
+                      : `<button class="btn btn-secondary text-tool text-tool-token" data-turn title="TURN：翻面並換下一圈">TURN</button>
+                  <button class="btn btn-secondary text-tool text-tool-token" data-insert="DU" title="插入 DU（斷線）">DU</button>`
+                  }
                 </div>`
               : `<div class="text-tools">
                   <button class="btn btn-secondary text-tool" data-add="P">P:自動序號</button>
