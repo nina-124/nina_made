@@ -1,3 +1,5 @@
+import { isSeparator, resetColorAtCaret } from './typing-color.js';
+
 // 觸控裝置專用的鉤針鍵盤：點選圖解表「針法」「總針數」「圈數」欄時從畫面底部彈出，取代手機原生鍵盤。
 // 收合後畫面右下角會留一個 ▲ 按鈕，點一下再打開。
 // 按鍵只把文字插入游標處，由原本的 input 事件負責存檔與計算，桌面版仍用實體鍵盤。
@@ -93,6 +95,8 @@ function build() {
     const btn = e.target.closest('button');
     if (!btn) return;
     if (btn.dataset.ckInsert !== undefined) {
+      // 逗號一律是預設色（黑色），不跟著前面字的顏色
+      if (isSeparator(btn.dataset.ckInsert) && isKeyCell(document.activeElement)) resetColorAtCaret(document.activeElement);
       document.execCommand('insertText', false, btn.dataset.ckInsert);
       // TURN 是「翻面並換下一圈」：文字插入後通知編輯器（圖解文本）接著新增下一圈；沒有編輯器接手時就只是文字
       if (btn.dataset.ckInsert === 'TURN') document.activeElement?.dispatchEvent(new CustomEvent('ck-turn', { bubbles: true }));

@@ -3,6 +3,7 @@ import { ICONS } from '../icons.js';
 import { reorderById, bindDragReorder } from '../drag-reorder.js';
 import { countStitches } from '../stitch-count.js';
 import { initCrochetKeyboard } from '../crochet-keyboard.js';
+import { applyTextColor, bindSeparatorColor } from '../typing-color.js';
 
 const DATA_PATH = 'data/diagrams.json';
 
@@ -617,7 +618,8 @@ function renderColorPalette() {
   const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#af52de'];
   return `
     <div class="color-palette">
-      <span class="palette-label">選取文字上色：</span>
+      <span class="palette-label" title="選取文字會直接變色；只點游標的話，接下來打的字就是這個顏色（先選色再打字）">文字顏色：</span>
+      <button type="button" class="color-swatch" data-color="default" title="黑色（預設）" style="background:#1f2a1e"></button>
       ${colors
         .map(
           (c) => `<button type="button" class="color-swatch" data-color="${c}" style="background:${c}"></button>`
@@ -653,8 +655,15 @@ function closestCellEdit(node) {
 
 function bindColorPalette(container) {
   const applyColor = (color) => {
+    // 游標（或選取）在儲存格裡：有選取 → 選取的字變色；只有游標 → 接下來打的字用這個顏色（先選色再打字）
+    const live = closestCellEdit(window.getSelection().anchorNode);
+    if (live) {
+      applyTextColor(live, color === 'default' ? null : color);
+      return;
+    }
+    // 游標不在儲存格裡（例如手機上選取後焦點被搶走）：沿用最後一次選取的範圍
     const range = savedSelectionRange;
-    if (!range) return;
+    if (!range || color === 'default') return;
     const cell = closestCellEdit(range.commonAncestorContainer);
     if (!cell) return;
     const span = document.createElement('span');
@@ -787,6 +796,7 @@ function bindTableSection(container, table, node, onStructureChange) {
   if (!el) return;
 
   el.querySelectorAll('[contenteditable][data-field]').forEach((cell) => {
+    if (cell.dataset.field === 'stitch') bindSeparatorColor(cell); // 逗號一律黑色
     cell.addEventListener('input', () => {
       const rowId = cell.closest('[data-row]').dataset.row;
       const row = table.rows.find((r) => r.id === rowId);

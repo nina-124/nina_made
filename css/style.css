@@ -1096,3 +1096,7 @@ body.ck-open .main { padding-bottom: 360px; }
   box-shadow: 0 4px 14px rgba(54, 75, 53, 0.3);
 }
 .ck-open-btn[hidden] { display: none; }
+
+/* 黑色（預設）色點，以及目前游標處字色對應的色點外框 */
+.text-color-default, .text-dot-default { background: #1f2a1e; }
+.text-color-btn.is-current, .text-mini-dot.is-current, .text-tool.is-current { outline: 2px solid var(--green-800); outline-offset: 2px; }
