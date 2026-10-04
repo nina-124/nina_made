@@ -262,6 +262,7 @@ function tableHtml(text, editable) {
 // onChange：表格內容有任何變動（打字、加列、刪列）都會呼叫，3D預覽頁用它即時更新預覽
 function mountTableEditor(host, text, { compact = false, onChange = () => {} } = {}) {
   let lastStitchCell = null; // 最後編輯的針法欄：按 TURN / DU 時把文字插入這裡
+  let lastRowId = null; // 游標最後所在的列：右邊的 R 鍵把新的一圈加在它的正下方
   const render = () => {
     // 手機：工具列用精簡版省版面；觸控裝置有鉤針鍵盤，TURN、DU 在鍵盤上，工具列就不放
     const phone = window.matchMedia('(max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px)').matches;
@@ -359,6 +360,8 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
 
   host.addEventListener('focusin', (e) => {
     if (e.target.matches?.('[data-field="stitch"]')) lastStitchCell = e.target;
+    const rowId = e.target.closest?.('[data-row]')?.dataset.row;
+    if (rowId) lastRowId = rowId;
   });
   // 手機鍵盤的 TURN 鍵：文字已經插入，這裡接著換到下一圈
   host.addEventListener('ck-turn', (e) => {
@@ -420,8 +423,9 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
       });
     });
 
-    const addRow = (row, focusStitch, pId) => {
-      if (pId) insertInGroup(text.rows, pId, row);
+    const addRow = (row, focusStitch, pId, afterId) => {
+      if (afterId) insertAfterRow(text.rows, afterId, row);
+      else if (pId) insertInGroup(text.rows, pId, row);
       else text.rows.push(row);
       render();
       onChange();
@@ -457,7 +461,9 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-add]').forEach((el) => {
       el.addEventListener('click', () => {
         const kind = el.dataset.add;
-        addRow(newRow(kind), kind === 'R');
+        // R：游標在哪一列就加在那一列的正下方；沒有游標（或那一列已刪除）才加到最後
+        const after = kind === 'R' && text.rows.some((r) => r.id === lastRowId) ? lastRowId : undefined;
+        addRow(newRow(kind), kind === 'R', undefined, after);
       });
     });
     // 色點：游標在針法欄 → 選取的字變色／接下來打的字用這個顏色（先選顏色再打字）；不在針法欄 → 新增一列換色標記
