@@ -30,9 +30,14 @@ function parseRoundSpan(html) {
   return Math.max(1, end - start + 1);
 }
 
-// 回傳 { rounds: [{ count, repeat }], warnings: [字串] }
+// 回傳 { rounds: [{ count, repeat }], strips, warnings: [字串] }
+// strips：來回編織的局部片。結尾是 TURN 的圈只鉤在前一圈的一小段針目上（不是繞一整圈），
+// 從那一圈起一直到含 DU（斷線）的那一列都算同一片；它們不進旋轉體，另外收成 { afterRound, rows: [{ count, height, color }] }，
+// afterRound 是片子所接的那個整圈在 rounds 的位置（前面沒有整圈就是 -1）。
 export function analyzeTable(table) {
   const rounds = [];
+  const strips = [];
+  let strip = null; // 目前進行中的局部片
   const warnings = [];
   let previous = null;
   let previousHeight = 1;
@@ -65,12 +70,23 @@ export function analyzeTable(table) {
 
     const height = stitchText ? roundHeightOf(stitchText) : previousHeight;
     const color = /^#[0-9a-f]{6}$/i.test(row.color || '') ? parseInt(row.color.slice(1), 16) : null; // 圖解文本的換色
+
+    const endsWithTurn = /(^|[\s,，、])TURN[\s,，、]*$/i.test(stitchText);
+    if (strip || endsWithTurn) {
+      if (!strip) {
+        strip = { afterRound: rounds.length - 1, rows: [] };
+        strips.push(strip);
+      }
+      for (let k = 0; k < parseRoundSpan(row.round); k++) strip.rows.push({ count, height, color });
+      if (/(^|[\s,，、])DU([\s,，、]|$)/i.test(stitchText)) strip = null; // DU 斷線：局部片到這裡結束
+      continue; // 不更新 previous：局部片之後的整圈不是從它接下去的
+    }
     // 每針顏色的數量要和總針數一致才用（總針數是手填、針法又看不懂時就沒有對應）
     rounds.push({ count, repeat: parseRoundSpan(row.round), height, color, blo, cells: cells && cells.length === count ? cells : null });
     previous = count;
     previousHeight = height;
   }
-  return { rounds, warnings };
+  return { rounds, strips, warnings };
 }
 
 // 每圈一個 (半徑, 高度, 顏色)，繞 Y 軸旋轉成形狀；沒指定顏色的圈用 fallbackColor
@@ -219,20 +235,41 @@ export async function mountDiagramPreview(host, getTables) {
     clearGroup();
     analyzed.forEach((a, i) => {
       if (selected !== i) return;
-      if (!a.rounds.length) return;
+      if (!a.rounds.length && !a.strips.length) return;
       const partColor = PART_COLORS[i % PART_COLORS.length];
-      const profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT, partColor);
-      const geometry = new THREE.LatheGeometry(
-        profile.map(([r, y]) => new THREE.Vector2(r, y)),
-        64
-      );
-      const material = new THREE.MeshStandardMaterial({
-        map: buildColorTexture(THREE, profile, a.rounds, partColor),
-        roughness: 0.9,
-        side: THREE.DoubleSide,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      group.add(mesh);
+      let profile = null;
+      if (a.rounds.length) {
+        profile = buildProfile(a.rounds, STITCH_WIDTH, ROUND_HEIGHT, partColor);
+        const geometry = new THREE.LatheGeometry(
+          profile.map(([r, y]) => new THREE.Vector2(r, y)),
+          64
+        );
+        const material = new THREE.MeshStandardMaterial({
+          map: buildColorTexture(THREE, profile, a.rounds, partColor),
+          roughness: 0.9,
+          side: THREE.DoubleSide,
+        });
+        group.add(new THREE.Mesh(geometry, material));
+      }
+      // 來回編織的局部片：平的長條，一列一條，寬度是針數、高度是圈高，疊在它所接的那個整圈的頂端正前方
+      for (const strip of a.strips) {
+        let y = 0;
+        let z = 0;
+        if (profile && strip.afterRound >= 0) {
+          const node = profile.nodeRound.lastIndexOf(strip.afterRound);
+          [z, y] = profile[Math.min(node * profile.sub, profile.length - 1)];
+        }
+        for (const row of strip.rows) {
+          const h = ROUND_HEIGHT * row.height;
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(row.count * STITCH_WIDTH, h),
+            new THREE.MeshStandardMaterial({ color: row.color ?? partColor, roughness: 0.9, side: THREE.DoubleSide })
+          );
+          plane.position.set(0, y + h / 2, z);
+          group.add(plane);
+          y += h;
+        }
+      }
     });
 
     msgEl.textContent = group.children.length ? '' : '填寫「針法」後，這裡會顯示預覽';
