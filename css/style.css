@@ -990,7 +990,7 @@ body.ck-open .main { padding-bottom: 320px; }
 .text-tools { display: flex; flex-direction: column; gap: 12px; }
 .text-tool { width: 100%; justify-content: center; }
 .text-viewer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-.text-viewer .diagram-preview { margin: 0; }
+.text-viewer .diagram-preview { margin: 0; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; } /* 電腦版：預覽跟著捲動，改針法時隨時看得到 */
 @media (max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px) {
   .text-editor, .text-viewer { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .text-tools { order: -1; flex-direction: row; flex-wrap: wrap; }
@@ -1017,6 +1017,7 @@ body.ck-open .main { padding-bottom: 320px; }
 .text-viewer .text-editor { grid-template-columns: minmax(0, 1fr) 52px; gap: 12px; }
 @media (max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px) {
   .text-viewer, .text-viewer .text-editor { grid-template-columns: minmax(0, 1fr); }
+  .text-viewer .diagram-preview { position: static; max-height: none; overflow-y: visible; }
   /* 手機：工具列貼在頂部分類標籤列下方，捲動時不消失 */
   .text-tools { top: 60px; z-index: 6; padding: 8px 0; background: rgba(247, 248, 243, 0.96); }
 }
