@@ -6,6 +6,7 @@ import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
 import { parseStitchHtml, sanitizeStitchHtml, colorIndexOf, withClosingRound } from '../stitch-html.js';
 import { applyTextColor, bindSeparatorColor, cellAtCaret, currentTextColor } from '../typing-color.js';
+import { swallowNextClick } from '../ghost-click.js';
 import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
 import { mountDiagramPreview } from './diagram-preview.js';
@@ -374,6 +375,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-turn]').forEach((el) => {
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        swallowNextClick(); // 按下就處理；抬起手指的點擊不要穿透到重畫後出現在原位的別的按鈕
         const cell = targetStitchCell();
         if (cell) turnToNextRound(cell);
       });
@@ -383,6 +385,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-insert]').forEach((el) => {
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        swallowNextClick(); // 按下就處理；抬起手指的點擊不要穿透到重畫後出現在原位的別的按鈕
         insertToken(el.dataset.insert);
       });
       el.addEventListener('mousedown', (e) => e.preventDefault());
@@ -439,6 +442,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
       // P 列的色點也一樣：游標在針法欄 → 字色；不在針法欄 → 在這個 P 底下新增換色標記
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        swallowNextClick(); // 按下就處理；抬起手指的點擊不要穿透到重畫後出現在原位的別的按鈕
         const n = Number(el.dataset.color);
         if (!applyColor(TEXT_COLORS[n].hex)) addRow(newRow('C', n), false, el.dataset.addIn);
       });
@@ -470,6 +474,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-add-color]').forEach((el) => {
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault(); // 不要讓選取消失
+        swallowNextClick(); // 按下就處理；抬起手指的點擊不要穿透到重畫後出現在原位的別的按鈕
         const n = Number(el.dataset.addColor);
         if (!applyColor(TEXT_COLORS[n].hex)) addRow(newRow('C', n), false);
       });
@@ -480,6 +485,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-default-color]').forEach((el) => {
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        swallowNextClick(); // 按下就處理；抬起手指的點擊不要穿透到重畫後出現在原位的別的按鈕
         applyColor(null);
       });
       el.addEventListener('mousedown', (e) => e.preventDefault());

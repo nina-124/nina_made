@@ -228,6 +228,8 @@ function renderShell() {
   if (ctx.authed) {
     logoutEl.textContent = `${ctx.username || ''} · 登出`;
     logoutEl.onclick = () => {
+      // 手機版這個按鈕貼在導覽列旁邊，很容易誤觸，所以要先確認
+      if (!confirm('確定要登出嗎？\n還沒按 ✓ 儲存的修改會不見。')) return;
       clearAuth();
       location.href = 'login.html';
     };

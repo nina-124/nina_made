@@ -1,4 +1,5 @@
 import { isSeparator, resetColorAtCaret } from './typing-color.js';
+import { swallowNextClick } from './ghost-click.js';
 
 // 觸控裝置專用的鉤針鍵盤：點選圖解表「針法」「總針數」「圈數」欄時從畫面底部彈出，取代手機原生鍵盤。
 // 所有按鍵一次顯示，沒有分頁也不用捲動。
@@ -66,6 +67,7 @@ function build() {
   document.body.appendChild(openBtn);
   openBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    swallowNextClick(); // ▲ 按下就消失，抬起手指的點擊不能穿透到後面的東西
     if (collapsedCell?.isConnected) collapsedCell.focus(); // 取得焦點就會自動打開鍵盤
     syncOpenButton();
   });
@@ -90,6 +92,7 @@ function build() {
     } else if (btn.hasAttribute('data-ck-delete')) {
       document.execCommand('delete');
     } else if (btn.hasAttribute('data-ck-close')) {
+      swallowNextClick(); // 鍵盤馬上收起來，抬起手指的點擊不能穿透到後面的「登出」
       collapse();
     }
   });
