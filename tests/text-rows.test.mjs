@@ -7,15 +7,15 @@ const P = () => ({ kind: 'P' });
 const R = (stitch = '', total = '') => ({ kind: 'R', stitch, total });
 const C = (color) => ({ kind: 'C', color });
 
-test('P 依序編號，R 在每個 P 底下重新從 R1 開始', () => {
+test('P 依序編號，圈數只顯示數字，在每個 P 底下重新從 1 開始', () => {
   const labels = labelRows([P(), R(), R(), P(), R(), R()]).map((l) => l.label);
-  assert.deepEqual(labels, ['P1', 'R1', 'R2', 'P2', 'R1', 'R2']);
+  assert.deepEqual(labels, ['P1', '1', '2', 'P2', '1', '2']);
 });
 
 test('刪掉中間的列後，編號會自動接上', () => {
   const rows = [P(), R(), R(), R()];
   rows.splice(1, 1);
-  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', '1', '2']);
 });
 
 test('換色只影響後面的圈，遇到新的 P 回到預設色', () => {
@@ -26,8 +26,8 @@ test('換色只影響後面的圈，遇到新的 P 回到預設色', () => {
 test('匯出：每個 P 變成一張表，標題是 P1、P2，R 變成該表的列，且不帶顏色', () => {
   const tables = textRowsToTables([P(), R('6X', '6'), R('6V', '12'), P(), R('12X', '12')]);
   assert.deepEqual(tables.map((t) => t.part), ['P1', 'P2']);
-  assert.deepEqual(tables[0].rows.map((r) => [r.round, r.stitch, r.total]), [['R1', '6X, SL, CH', '6'], ['R2', '6V, SL, CH', '12']]);
-  assert.deepEqual(tables[1].rows.map((r) => r.round), ['R1']);
+  assert.deepEqual(tables[0].rows.map((r) => [r.round, r.stitch, r.total]), [['1', '6X, SL, CH', '6'], ['2', '6V, SL, CH', '12']]);
+  assert.deepEqual(tables[1].rows.map((r) => r.round), ['1']);
   assert.ok(tables.every((t) => t.rows.every((r) => !('color' in r))));
 });
 
@@ -44,7 +44,7 @@ test('在指定 P 底下新增列，會放在該 P 的最後、下一個 P 之�
   const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(P(), 'p2'), withId(R(), 'b')];
   insertInGroup(rows, 'p1', withId(R(), 'new'));
   assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new', 'p2', 'b']);
-  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2', 'P2', 'R1']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', '1', '2', 'P2', '1']);
 });
 
 test('指定的 P 是最後一個時，新增的列放在表格最後', () => {
@@ -57,7 +57,7 @@ test('刪除一個 P 會連同它底下的列一起刪，不動其他 P，後面
   const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(R(), 'b'), withId(P(), 'p2'), withId(R(), 'c')];
   assert.equal(removeGroup(rows, 'p1'), 3);
   assert.deepEqual(rows.map((r) => r.id), ['p2', 'c']);
-  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', '1']);
 });
 
 test('TURN：在這一圈結尾補上 TURN，重複按不會重複加', () => {
@@ -71,7 +71,7 @@ test('TURN 換下一圈：新的一圈放在目前這圈的正下方，後面的
   const rows = [withId(P(), 'p1'), withId(R(), 'a'), withId(R(), 'b')];
   insertAfterRow(rows, 'a', withId(R(), 'new'));
   assert.deepEqual(rows.map((r) => r.id), ['p1', 'a', 'new', 'b']);
-  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', 'R1', 'R2', 'R3']);
+  assert.deepEqual(labelRows(rows).map((l) => l.label), ['P1', '1', '2', '3']);
 });
 
 test('單獨一圈換色：R 列自己指定的顏色優先，不影響前後的圈', () => {

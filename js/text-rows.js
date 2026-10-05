@@ -1,6 +1,6 @@
 // 圖解文本的列資料與規則（不碰畫面，方便測試）。
 // 一份文本是一串列：P＝部位（開一張新表）、R＝圈、C＝換色標記。
-// 標記不存檔，每次依順序算出：P 依序 P1、P2…；R 在每個 P 底下重新從 R1 開始。
+// 標記不存檔，每次依順序算出：P 依序 P1、P2…；圈數只顯示數字（1、2、3…），在每個 P 底下重新從 1 開始。
 // 換色只影響它後面的 R，直到下一個換色；遇到新的 P 就回到預設色（第一個顏色）。
 // 單獨一圈換色：R 列自己的 color（0～2）優先於前面的換色；單獨幾針換色直接上在針法文字的顏色上（見 stitch-html.js）。
 
@@ -44,7 +44,7 @@ export function labelRows(rows) {
     r += 1;
     const own = Number.isInteger(row.color) && TEXT_COLORS[row.color] ? row.color : null;
     // explicit：使用者真的指定過顏色（單獨換色或之前有換色標記），沒指定的圈不算
-    return { row, label: `R${r}`, colorIndex: own ?? colorIndex, explicit: own !== null || colorChanged };
+    return { row, label: String(r), colorIndex: own ?? colorIndex, explicit: own !== null || colorChanged };
   });
 }
 
