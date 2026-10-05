@@ -950,7 +950,22 @@ a { color: inherit; }
 .ck-key small { font-size: 10px; font-weight: 500; line-height: 1.1; color: var(--text-grey); }
 .ck-key:active { background: rgba(110, 127, 82, 0.22); }
 .ck-symbol { background: rgba(110, 127, 82, 0.12); }
-.ck-collapse { background: #d3ecc4; color: var(--green-800); }
+.ck-delete { grid-column: span 2; }
+/* 收合鈕：懸浮在鍵盤右上角，不佔按鍵的位置 */
+.ck-collapse {
+  position: absolute;
+  right: 12px;
+  bottom: 100%;
+  margin-bottom: 8px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: #d3ecc4;
+  color: var(--green-800);
+  font-size: 20px;
+  box-shadow: 0 4px 14px rgba(54, 75, 53, 0.3);
+}
 /* 留出鍵盤高度，讓正在編輯的欄位能捲到鍵盤上方 */
 body.ck-open .main { padding-bottom: 320px; }
 

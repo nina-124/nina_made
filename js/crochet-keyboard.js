@@ -3,7 +3,7 @@ import { swallowNextClick } from './ghost-click.js';
 
 // 觸控裝置專用的鉤針鍵盤：點選圖解表「針法」「總針數」「圈數」欄時從畫面底部彈出，取代手機原生鍵盤。
 // 所有按鍵一次顯示，沒有分頁也不用捲動。
-// 收合後畫面右下角會留一個 ▲ 按鈕，點一下再打開。
+// 收合鈕 ▼ 是懸浮在鍵盤右上角的小圓鈕；收合後畫面右下角會留一個 ▲ 按鈕，點一下再打開。
 // 按鍵只把文字插入游標處，由原本的 input 事件負責存檔與計算，桌面版仍用實體鍵盤。
 
 // 全部按鍵同時顯示（不分頁、不捲動）：沒有備註的針法排成緊湊的列，有備註的另成一組
@@ -52,9 +52,9 @@ function build() {
     <div class="ck-grid ck-digits">${DIGITS.map((d) => key(d, '')).join('')}</div>
     <div class="ck-grid ck-foot">
       ${SYMBOLS.map((s) => key(s, '', 'ck-symbol', s === ',' ? ', ' : s)).join('')}
-      <button type="button" class="ck-key ck-symbol" data-ck-delete>&#9003;</button>
-      <button type="button" class="ck-key ck-collapse" data-ck-close title="收合">&#9660;</button>
+      <button type="button" class="ck-key ck-symbol ck-delete" data-ck-delete>&#9003;</button>
     </div>
+    <button type="button" class="ck-collapse" data-ck-close title="收合">&#9660;</button>
   `;
   document.body.appendChild(panel);
 
