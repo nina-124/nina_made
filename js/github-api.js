@@ -34,21 +34,48 @@ export async function getJsonFile(repo, path, token) {
   return { data: JSON.parse(b64DecodeUtf8(json.content)), sha: json.sha };
 }
 
-export async function putJsonFile(repo, path, dataObj, sha, token, message) {
-  const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, {
-    method: 'PUT',
-    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+// GitHub 的寫入每次都會產生一個 commit。同一個分支同時寫入時，後到的會拿到過期的分支位置而回 409
+// （訊息像「…is at A but expected B」）。所以同一個 repo 的寫入排隊一個接一個做；
+// 萬一還是遇到（例如另一台裝置同時在寫），稍等再試。檔案內容真的被改過的 409（sha 對不上）不重試，以免蓋掉別人的修改。
+const writeQueues = new Map();
+export const retry = { baseMs: 300 }; // 重試前等待的基準時間（毫秒），測試時會縮短
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function writeContents(repo, path, body, token, failLabel) {
+  const key = `${repo.owner}/${repo.repo}`;
+  const run = (writeQueues.get(key) || Promise.resolve()).catch(() => {}).then(async () => {
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, {
+        method: 'PUT',
+        headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return res.json();
+      const err = await res.json().catch(() => ({}));
+      const branchRace = res.status === 409 && /but expected/.test(err.message || '');
+      if (branchRace && attempt < 4) {
+        await sleep(retry.baseMs * 2 ** attempt + Math.random() * retry.baseMs);
+        continue;
+      }
+      throw new Error(`${failLabel}（${res.status}）：${err.message || ''}`);
+    }
+  });
+  writeQueues.set(key, run);
+  return run;
+}
+
+export function putJsonFile(repo, path, dataObj, sha, token, message) {
+  return writeContents(
+    repo,
+    path,
+    {
       message: message || `更新 ${path}`,
       content: b64EncodeUtf8(JSON.stringify(dataObj, null, 2)),
       ...(sha ? { sha } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`寫入 ${path} 失敗（${res.status}）：${err.message || ''}`);
-  }
-  return res.json();
+    },
+    token,
+    `寫入 ${path} 失敗`
+  );
 }
 
 export async function getRawFileBase64(repo, path, token) {
@@ -61,18 +88,6 @@ export async function getRawFileBase64(repo, path, token) {
   return json.content;
 }
 
-export async function uploadImageFile(repo, path, base64Content, token, message) {
-  const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, {
-    method: 'PUT',
-    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: message || `新增圖片 ${path}`,
-      content: base64Content,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`上傳 ${path} 失敗（${res.status}）：${err.message || ''}`);
-  }
-  return res.json();
+export function uploadImageFile(repo, path, base64Content, token, message) {
+  return writeContents(repo, path, { message: message || `新增圖片 ${path}`, content: base64Content }, token, `上傳 ${path} 失敗`);
 }
