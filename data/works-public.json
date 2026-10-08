@@ -123,7 +123,7 @@
     },
     {
       "id": "韓團-gd-手燈-cn2e",
-      "name": "GD 手燈",
+      "name": "GD 第一代 小雛菊手燈",
       "description": "",
       "categoryIds": [
         "韓團-7avz"
@@ -132,6 +132,18 @@
         "assets/img/works/韓團-gd-手燈-cn2e-mtrc2kdfp3lp.jpg"
       ],
       "cover": "assets/img/works/韓團-gd-手燈-cn2e.jpg"
+    },
+    {
+      "id": "gd-第四代-皇冠手燈-nf27",
+      "name": "GD 第四代 皇冠手燈",
+      "description": "",
+      "categoryIds": [
+        "藝人-rq0s"
+      ],
+      "cover": "assets/img/works/gd-第四代-皇冠手燈-nf27.jpg",
+      "photos": [
+        "assets/img/works/gd-第四代-皇冠手燈-nf27-muyvo7qb3r4q.jpg"
+      ]
     },
     {
       "id": "韓團-super-junior-手燈-gtpo",
