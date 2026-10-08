@@ -1069,6 +1069,10 @@ body.ck-open .main { padding-bottom: 320px; }
     box-sizing: border-box;
   }
   .diagram-table { padding: 10px; }
+  /* 編輯時標題輸入框有預設最小寬度，會把後面的「說明」擠出畫面；手機改成兩排：標題＋刪除鍵，說明獨佔一排 */
+  .diagram-table-head { flex-wrap: wrap; gap: 8px; }
+  .diagram-table-head .part-name { flex: 1 1 0; min-width: 0; width: 0; font-size: 16pt; }
+  .diagram-table-head .part-note { order: 3; flex: 1 1 100%; min-width: 0; width: 100%; box-sizing: border-box; }
 }
 .text-round-dot {
   width: 14px;
