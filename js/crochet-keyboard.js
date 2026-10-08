@@ -52,7 +52,7 @@ function build() {
     <div class="ck-grid ck-digits">${DIGITS.map((d) => key(d, '')).join('')}</div>
     <div class="ck-grid ck-foot">
       ${SYMBOLS.map((s) => key(s, '', 'ck-symbol', s === ',' ? ', ' : s)).join('')}
-      ${key('空格', '', 'ck-symbol ck-space', ' ')}
+      ${key('空', '', 'ck-symbol', ' ')}
       <button type="button" class="ck-key ck-symbol ck-delete" data-ck-delete>&#9003;</button>
     </div>
     <button type="button" class="ck-collapse" data-ck-close title="收合">&#9660;</button>

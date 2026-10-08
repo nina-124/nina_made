@@ -930,7 +930,7 @@ a { color: inherit; }
 .ck-plain { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .ck-labeled { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .ck-digits { grid-template-columns: repeat(10, minmax(0, 1fr)); }
-.ck-foot { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.ck-foot { grid-template-columns: repeat(8, minmax(0, 1.1fr)) minmax(0, 1.2fr) minmax(0, 2fr); } /* 「空」鍵和數字鍵一樣寬（1.2fr ＝ 整列的 1/10），多出來的寬度平均分給前面 8 個符號 */
 .ck-key {
   display: flex;
   flex-direction: column;
@@ -951,7 +951,6 @@ a { color: inherit; }
 .ck-key small { font-size: 10px; font-weight: 500; line-height: 1.1; color: var(--text-grey); }
 .ck-key:active { background: rgba(110, 127, 82, 0.22); }
 .ck-symbol { background: rgba(110, 127, 82, 0.12); }
-.ck-delete, .ck-space { grid-column: span 2; }
 /* 收合鈕：懸浮在鍵盤右上角，不佔按鍵的位置 */
 .ck-collapse {
   position: absolute;
