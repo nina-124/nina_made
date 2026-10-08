@@ -7,7 +7,7 @@ import { swallowNextClick } from './ghost-click.js';
 // 按鍵只把文字插入游標處，由原本的 input 事件負責存檔與計算，桌面版仍用實體鍵盤。
 
 // 全部按鍵同時顯示（不分頁、不捲動）：沒有備註的針法排成緊湊的列，有備註的另成一組
-const PLAIN = ['X', 'V', 'A', 'T', 'F', 'E', 'CH', 'SL', 'W', 'M', 'TV', 'TA', 'FV', 'FA', 'EV', 'EA', 'TW', 'TM', 'FW', 'FM', 'EW', 'EM'];
+const PLAIN = ['X', 'V', 'A', 'T', 'F', 'E', 'CH', 'SL', 'K', 'W', 'M', 'TV', 'TA', 'FV', 'FA', 'EV', 'EA', 'TW', 'TM', 'FW', 'FM', 'EW', 'EM'];
 const LABELED = [
   ['BLO', '後內針'], ['FLO', '前外針'], ['D', '倒數起'], ['TURN', '反面'], ['DU', '斷線'], ['DTR', '雙長'], ['QTR', '三長'],
   ['TCA', '中棗3'], ['TQ', '中棗4'], ['FCA', '長棗3'], ['PF', '泡芙5長'], ['TG', '中爆5'], ['FG', '長爆5'], ['EG', '長長爆5'],
@@ -52,6 +52,7 @@ function build() {
     <div class="ck-grid ck-digits">${DIGITS.map((d) => key(d, '')).join('')}</div>
     <div class="ck-grid ck-foot">
       ${SYMBOLS.map((s) => key(s, '', 'ck-symbol', s === ',' ? ', ' : s)).join('')}
+      ${key('空格', '', 'ck-symbol ck-space', ' ')}
       <button type="button" class="ck-key ck-symbol ck-delete" data-ck-delete>&#9003;</button>
     </div>
     <button type="button" class="ck-collapse" data-ck-close title="收合">&#9660;</button>
@@ -114,7 +115,6 @@ function show(cell) {
   panel.hidden = false;
   syncOpenButton();
   document.body.classList.add('ck-open');
-  setTimeout(() => cell.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
 }
 
 function hide() {

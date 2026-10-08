@@ -128,3 +128,9 @@ test('COL 的顏色編號只有 1～3，後面必須接針法或括號，否則�
   assert.equal(countStitches('X, COL2'), null);
   assert.equal(countStitches('COL X'), null);
 });
+
+test('K 是空針（跳過一針不鉤）：不算針目，只是位置標記', () => {
+  assert.equal(countStitches('K'), 0);
+  assert.equal(countStitches('3X, K, 2X'), 5);
+  assert.equal(countStitches('2(X, K)'), 2);
+});
