@@ -57,7 +57,7 @@ function writeContents(repo, path, body, token, failLabel) {
         await sleep(retry.baseMs * 2 ** attempt + Math.random() * retry.baseMs);
         continue;
       }
-      throw new Error(`${failLabel}（${res.status}）：${err.message || ''}`);
+      throw Object.assign(new Error(`${failLabel}（${res.status}）：${err.message || ''}`), { status: res.status, apiMessage: err.message || '' });
     }
   });
   writeQueues.set(key, run);
@@ -88,6 +88,25 @@ export async function getRawFileBase64(repo, path, token) {
   return json.content;
 }
 
-export function uploadImageFile(repo, path, base64Content, token, message) {
-  return writeContents(repo, path, { message: message || `新增圖片 ${path}`, content: base64Content }, token, `上傳 ${path} 失敗`);
+// 目前這個路徑上檔案的 sha；檔案不存在就回傳 null
+async function getFileSha(repo, path, token) {
+  const res = await fetch(`${API}/repos/${repo.owner}/${repo.repo}/contents/${path}`, { headers: authHeaders(token) });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`讀取 ${path} 失敗（${res.status}）`);
+  return (await res.json()).sha || null;
+}
+
+// 新增或覆蓋圖片。路徑上已經有檔案時（例如上次儲存只成功了一部分，這次重新上傳同一個檔名），
+// GitHub 會回 422「"sha" wasn't supplied」，這時查出現有檔案的 sha，再用它覆蓋。
+export async function uploadImageFile(repo, path, base64Content, token, message) {
+  const body = { message: message || `新增圖片 ${path}`, content: base64Content };
+  const failLabel = `上傳 ${path} 失敗`;
+  try {
+    return await writeContents(repo, path, body, token, failLabel);
+  } catch (err) {
+    if (err.status !== 422 || !/sha/.test(err.apiMessage || '')) throw err;
+    const sha = await getFileSha(repo, path, token);
+    if (!sha) throw err;
+    return writeContents(repo, path, { ...body, sha }, token, failLabel);
+  }
 }
