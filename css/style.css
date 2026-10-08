@@ -1069,6 +1069,11 @@ body.ck-open .main { padding-bottom: 320px; }
     box-sizing: border-box;
   }
   .diagram-table { padding: 10px; }
+  /* 文字顏色列：一排放不下就換行，不超出畫面（標籤不直排，色碼輸入框吃剩餘寬度） */
+  .color-palette { flex-wrap: wrap; width: auto; max-width: 100%; box-sizing: border-box; border-radius: 20px; padding: 8px 12px; row-gap: 6px; }
+  .palette-label { white-space: nowrap; }
+  .color-custom-form { flex: 1 1 130px; min-width: 0; }
+  .color-custom { flex: 1; width: auto; min-width: 0; }
   /* 編輯時標題輸入框有預設最小寬度，會把後面的「說明」擠出畫面；手機改成兩排：標題＋刪除鍵，說明獨佔一排 */
   .diagram-table-head { flex-wrap: wrap; gap: 8px; }
   .diagram-table-head .part-name { flex: 1 1 0; min-width: 0; width: 0; font-size: 16pt; }
