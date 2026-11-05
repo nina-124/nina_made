@@ -43,9 +43,13 @@ test('不認得的針法或括號不成對時回傳 null，而不是亂算', () 
 });
 
 test('棗形針、爆米花針、泡芙針一組算 1 針，前面的數字是做幾組', () => {
-  assert.equal(countStitches('TCA'), 1);
-  assert.equal(countStitches('3FG'), 3);
-  assert.equal(countStitches('5(X, PF)'), 10);
+  assert.equal(countStitches('TC3'), 1);
+  assert.equal(countStitches('2TC4'), 2);
+  assert.equal(countStitches('2TC'), 2); // 後面的數字只說明由幾針合成，不是次數
+  assert.equal(countStitches('TC3'), countStitches('TC'));
+  assert.equal(countStitches('TCA'), null); // 舊名稱不再認得
+  assert.equal(countStitches('3FPC5'), 3);
+  assert.equal(countStitches('5(X, TPF5)'), 10);
 });
 
 test('圈高以短針為 1，混用針法取最高的，沒有針法時為 1', () => {

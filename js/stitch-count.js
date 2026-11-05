@@ -13,13 +13,16 @@ const STITCH_COUNT = {
   A: 1, TA: 1, FA: 1, EA: 1,
   W: 3, TW: 3, FW: 3, EW: 3,
   M: 1, TM: 1, FM: 1, EM: 1,
-  TCA: 1, TQ: 1, FCA: 1, PF: 1, TG: 1, FG: 1, EG: 1, // 棗形針、泡芙針、爆米花針：一組都鉤在同一針目，算 1 針
+  TC: 1, FC: 1, TPF: 1, TPC: 1, FPC: 1, EPC: 1, // 後面接的數字（TC3、TPF5）只說明由幾針合成，不算針數； 棗形針、泡芙針、爆米花針：一組都鉤在同一針目，算 1 針
   CH: 0, SL: 0, K: 0, // 鎖針、引拔針、空針（K，跳過一針不鉤）都不算針目
   DU: 0, TURN: 0, // 斷線、反面是標記，不算針目
 };
 
 // 每種針法的高度（以短針為 1，估計值）；同一圈混用多種針法時取最高的
-const HEIGHT_BY_PREFIX = [['DTR', 4], ['QTR', 5], ['PF', 2], ['T', 1.5], ['F', 2], ['E', 3]];
+const HEIGHT_BY_PREFIX = [['DTR', 4], ['QTR', 5], ['TPF', 2], ['T', 1.5], ['F', 2], ['E', 3]];
+
+// TC3、TPF5 等去掉後面說明用的數字
+const stitchKey = (name) => name.toUpperCase().replace(/^(TC|FC|TPF|TPC|FPC|EPC)\d+$/, '$1');
 
 function stitchHeight(name) {
   const hit = HEIGHT_BY_PREFIX.find(([prefix]) => name.startsWith(prefix));
@@ -33,7 +36,8 @@ const LOOP_MODIFIERS = new Set(['BLO', 'FLO']);
 
 const OPEN = { '(': ')', '（': '）', '[': ']', '［': '］', '【': '】', '{': '}', '｛': '｝' };
 const CLOSE = new Set(Object.values(OPEN));
-const TOKEN = /\s*(\d+|[A-Za-z]+|[()（）[\]［］【】{}｛｝]|[,，、]|\S)/gy;
+// 棗形、泡芙、爆米花針後面的數字屬於針法名稱（TC3），要先比對，否則會被當成倍數
+const TOKEN = /\s*((?:TC|FC|TPF|TPC|FPC|EPC)\d*(?![A-Za-z\d])|\d+|[A-Za-z]+|[()（）[\]［］【】{}｛｝]|[,，、]|\S)/giy;
 
 // 每個 token 在原文裡的起點也一併記下來，用來查那個字的顏色
 function tokenizeWithPos(text) {
@@ -60,7 +64,7 @@ function tokenize(text) {
 export function analyzeStitches(text, charColors = null) {
   const { tokens, starts } = tokenizeWithPos(String(text || ''));
   let pos = 0;
-  const startsItem = (tk) => tk !== undefined && (/^\d+$/.test(tk) || OPEN[tk] || tk.toUpperCase() in STITCH_COUNT);
+  const startsItem = (tk) => tk !== undefined && (/^\d+$/.test(tk) || OPEN[tk] || stitchKey(tk) in STITCH_COUNT);
 
   // 解析到遇到對應的結尾括號（或字串結束）為止，回傳 [針數, BLO 針數, 每針顏色]
   // inBlo / inColor：整段都在 BLO / 同一個顏色裡
@@ -132,7 +136,7 @@ export function analyzeStitches(text, charColors = null) {
         pos++;
         [value, bloValue, itemColors] = inner;
       } else {
-        const per = STITCH_COUNT[next.toUpperCase()];
+        const per = STITCH_COUNT[stitchKey(next)];
         if (per === undefined) return null;
         value = per;
         bloValue = blo ? per : 0;
@@ -160,7 +164,7 @@ export function countStitches(text) {
 export function roundHeightOf(text) {
   let height = 1;
   for (const t of tokenize(String(text || ''))) {
-    const name = t.toUpperCase();
+    const name = stitchKey(t);
     if (STITCH_COUNT[name] > 0) height = Math.max(height, stitchHeight(name)); // 不算針的標記不影響圈高
   }
   return height;
