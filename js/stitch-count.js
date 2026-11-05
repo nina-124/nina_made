@@ -4,7 +4,9 @@
 // D 加數字（D2）表示從起針鎖針的倒數第 n 針開始鉤，只影響入針位置，不影響針數；
 // COL1～COL3 寫在針法或括號前面（COL2 3X、COL3 (X,V)），讓那幾針用三個換色之一，不影響針數；
 // DU（斷線，下一針從斷線處的下一針繼續）、TURN（反面）是標記，不算針；
-// 以逗號、頓號或空白分隔；CH、SL、K（空針）、環起不算針，其餘每針算 1，加針類算 2、三加類算 3。
+// 以逗號、頓號或空白分隔；SL、K（空針，只跳過上一圈的針目）、環起不算針，其餘每針算 1，加針類算 2、三加類算 3；
+// CH 只有夾在針目中間時才算（例如 12X, 9CH, 7K, 18X 的 9CH 取代空掉的針，每個算 1 針）；
+// 圈開頭（起針、立起）與結尾（SL、CH、TURN 前的收尾）的 CH 不算。
 // 遇到不認得的針法或括號不成對時回傳 null，由呼叫端決定如何顯示，避免算出錯的數字。
 
 const STITCH_COUNT = {
@@ -64,6 +66,12 @@ function tokenize(text) {
 export function analyzeStitches(text, charColors = null) {
   const { tokens, starts } = tokenizeWithPos(String(text || ''));
   let pos = 0;
+  let seenStitch = false; // 已經出現過會產生針目的針法
+  // 最後一個會產生針目的針法的位置（CH 以外）；在它後面的 CH 是收尾用的，不算
+  const lastStitchPos = tokens.reduce((last, tk, i) => {
+    const key = stitchKey(tk);
+    return key !== 'CH' && STITCH_COUNT[key] > 0 ? i : last;
+  }, -1);
   const startsItem = (tk) => tk !== undefined && (/^\d+$/.test(tk) || OPEN[tk] || stitchKey(tk) in STITCH_COUNT);
 
   // 解析到遇到對應的結尾括號（或字串結束）為止，回傳 [針數, BLO 針數, 每針顏色]
@@ -136,8 +144,11 @@ export function analyzeStitches(text, charColors = null) {
         pos++;
         [value, bloValue, itemColors] = inner;
       } else {
-        const per = STITCH_COUNT[stitchKey(next)];
+        const key = stitchKey(next);
+        let per = STITCH_COUNT[key];
         if (per === undefined) return null;
+        if (key === 'CH') per = seenStitch && pos < lastStitchPos ? 1 : 0; // 只有夾在針目中間的鎖針才算針目；圈開頭（起針、立起）和結尾（SL、CH、TURN 前）的不算
+        else if (per > 0) seenStitch = true;
         value = per;
         bloValue = blo ? per : 0;
         const ownColor = color ?? (charColors ? charColors[starts[pos]] ?? null : null);

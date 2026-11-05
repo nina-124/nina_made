@@ -28,6 +28,13 @@ test('全形括號、頓號與小寫視同半形', () => {
   assert.equal(countStitches('{[(X,V)]}'), 3);
 });
 
+test('夾在針目中間的 CH 算針目，開頭與結尾的 CH 不算（使用者的衣服 R2）', () => {
+  assert.equal(countStitches('12X, 9CH, 7K, 18X, 9CH, 7K, 12X'), 60); // 7K 只是空過上一圈的針目
+  assert.equal(countStitches('57CH, D2 56X'), 56);
+  assert.equal(countStitches('6X, SL, CH'), 6);
+  assert.equal(countStitches('6X, CH, TURN'), 6);
+});
+
 test('只有 CH 或空白時為 0', () => {
   assert.equal(countStitches('4CH'), 0);
   assert.equal(countStitches(''), 0);
