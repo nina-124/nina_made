@@ -3,7 +3,8 @@ import { ICONS } from '../icons.js';
 import { reorderById, bindDragReorder } from '../drag-reorder.js';
 import { countStitches } from '../stitch-count.js';
 import { initCrochetKeyboard } from '../crochet-keyboard.js';
-import { applyTextColor, bindSeparatorColor } from '../typing-color.js';
+import { applyTextColor, bindSeparatorColor, currentTextColor } from '../typing-color.js';
+import { TEXT_COLORS } from '../text-colors.js';
 import { withClosingRound } from '../stitch-html.js';
 
 const DATA_PATH = 'data/diagrams.json';
@@ -616,14 +617,14 @@ function saveSelectionRange() {
 }
 
 function renderColorPalette() {
-  const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#af52de'];
+  const colors = TEXT_COLORS.map((c) => c.hex); // 和圖解文本相同的三個換色
   return `
     <div class="color-palette">
       <span class="palette-label" title="選取文字會直接變色；只點游標的話，接下來打的字就是這個顏色（先選色再打字）">文字顏色：</span>
       <button type="button" class="color-swatch" data-color="default" title="黑色（預設）" style="background:#1f2a1e"></button>
       ${colors
         .map(
-          (c) => `<button type="button" class="color-swatch" data-color="${c}" style="background:${c}"></button>`
+          (c, i) => `<button type="button" class="color-swatch" data-color="${c}" title="${TEXT_COLORS[i].name}" style="background:${c}"></button>`
         )
         .join('')}
       <div class="color-custom-form">
@@ -683,8 +684,29 @@ function bindColorPalette(container) {
   };
   container.querySelectorAll('.color-swatch').forEach((btn) => {
     btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => applyColor(btn.dataset.color));
+    btn.addEventListener('click', () => {
+      applyColor(btn.dataset.color);
+      markCurrentColor();
+    });
   });
+
+  // 游標處目前的字色，對應的色點加上外框；游標不在儲存格裡就全部取消；自訂色碼不在色點裡，也全部取消
+  const toHex = (rgb) => {
+    const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(rgb);
+    return m ? `#${[m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : String(rgb).toLowerCase();
+  };
+  const markCurrentColor = () => {
+    const cell = closestCellEdit(window.getSelection().anchorNode);
+    const inCell = cell && container.contains(cell);
+    const now = inCell ? toHex(currentTextColor()) : null;
+    const base = inCell ? toHex(getComputedStyle(cell).color) : null;
+    container.querySelectorAll('.color-swatch').forEach((el) => {
+      const hex = el.dataset.color === 'default' ? base : el.dataset.color;
+      el.classList.toggle('is-current', inCell && hex === now);
+    });
+  };
+  const onSelectionChange = () => (container.isConnected ? markCurrentColor() : document.removeEventListener('selectionchange', onSelectionChange));
+  document.addEventListener('selectionchange', onSelectionChange);
   const custom = container.querySelector('[data-color-custom]');
   const preview = container.querySelector('[data-color-preview]');
   if (custom && preview) {

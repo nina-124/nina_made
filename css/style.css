@@ -580,6 +580,7 @@ a { color: inherit; }
   padding: 0;
   flex-shrink: 0;
 }
+.color-swatch.is-current { outline: 2px solid var(--green-800); outline-offset: 2px; }
 .color-custom-form { display: flex; align-items: center; gap: 4px; }
 .color-custom {
   width: 78px;
