@@ -40,9 +40,28 @@ export function resetColorAtCaret(cell) {
   if (currentTextColor() !== getComputedStyle(cell).color) applyTextColor(cell, null);
 }
 
-// 電腦實體鍵盤：在逗號輸入之前把顏色切回預設色
+// 最後一次選的字色（null ＝ 黑色／預設）：沒有再點別的顏色之前，新的一列、逗號後面打的字都沿用它
+let stickyHex = null;
+export function setStickyColor(hex) {
+  stickyHex = hex;
+}
+
+export function restoreStickyColor(cell) {
+  if (stickyHex !== null && window.getSelection().isCollapsed) applyTextColor(cell, stickyHex);
+}
+
+// 針法欄的字色：逗號本身一律是預設色（黑色），逗號之後與新的空白欄位接著用最後選的顏色。電腦與手機鍵盤共用
 export function bindSeparatorColor(cell) {
   cell.addEventListener('beforeinput', (e) => {
     if (e.inputType === 'insertText' && isSeparator(e.data)) resetColorAtCaret(cell);
+  });
+  cell.addEventListener('input', (e) => {
+    if (e.inputType === 'insertText' && isSeparator(e.data)) restoreStickyColor(cell);
+  });
+  // 空白的針法欄取得焦點時（例如新增一列）：接下來打的字用最後選的顏色
+  cell.addEventListener('focus', () => {
+    setTimeout(() => {
+      if (document.activeElement === cell && !cell.textContent.trim()) restoreStickyColor(cell);
+    }, 0);
   });
 }

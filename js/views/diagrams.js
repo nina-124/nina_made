@@ -3,7 +3,7 @@ import { ICONS } from '../icons.js';
 import { reorderById, bindDragReorder } from '../drag-reorder.js';
 import { countStitches } from '../stitch-count.js';
 import { initCrochetKeyboard } from '../crochet-keyboard.js';
-import { applyTextColor, bindSeparatorColor, currentTextColor } from '../typing-color.js';
+import { applyTextColor, bindSeparatorColor, currentTextColor, setStickyColor } from '../typing-color.js';
 import { TEXT_COLORS } from '../text-colors.js';
 import { withClosingRound } from '../stitch-html.js';
 
@@ -657,6 +657,7 @@ function closestCellEdit(node) {
 
 function bindColorPalette(container) {
   const applyColor = (color) => {
+    setStickyColor(color === 'default' ? null : color); // 沒再點別的顏色前，新的一列、逗號後面也用這個顏色
     // 游標（或選取）在儲存格裡：有選取 → 選取的字變色；只有游標 → 接下來打的字用這個顏色（先選色再打字）
     const live = closestCellEdit(window.getSelection().anchorNode);
     if (live) {

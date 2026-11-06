@@ -5,7 +5,7 @@ import { PRIVATE_REPO, getJsonFile, putJsonFile } from '../github-api.js';
 import { ICONS } from '../icons.js';
 import { countStitches } from '../stitch-count.js';
 import { parseStitchHtml, sanitizeStitchHtml, colorIndexOf, withClosingRound } from '../stitch-html.js';
-import { applyTextColor, bindSeparatorColor, cellAtCaret, currentTextColor } from '../typing-color.js';
+import { applyTextColor, bindSeparatorColor, cellAtCaret, currentTextColor, setStickyColor } from '../typing-color.js';
 import { swallowNextClick } from '../ghost-click.js';
 import { TEXT_COLORS, labelRows, newRow, textRowsToTables, insertInGroup, removeGroup, appendTurn, insertAfterRow } from '../text-rows.js';
 import { listPatternDestinations, addPatternToCategory } from './diagrams.js';
@@ -327,6 +327,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
   const applyColor = (hex) => {
     const cell = cellAtCaret('[data-field="stitch"]');
     if (!cell || !host.contains(cell)) return false;
+    setStickyColor(hex); // 沒再點別的顏色前，新的一列也用這個顏色
     applyTextColor(cell, hex);
     markCurrentColor();
     return true; // 會觸發 input 事件，原本的存檔與計算照常運作
