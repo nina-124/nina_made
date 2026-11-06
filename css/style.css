@@ -639,13 +639,13 @@ a { color: inherit; }
 
 .diagram-grid-row {
   display: grid;
-  grid-template-columns: 3em 3fr 5em 1fr;
+  grid-template-columns: 4.2em 3fr 5em 1fr;
   gap: 12px;
   align-items: start;
   padding: 8px 0;
 }
 .diagram-grid.is-editing .diagram-grid-row {
-  grid-template-columns: 3em 3fr 5em 28px 1fr;
+  grid-template-columns: 4.2em 3fr 5em 28px 1fr;
 }
 .diagram-grid-row:not(:last-child) { border-bottom: 1.5px solid #e4edd7; }
 .diagram-grid-head { font-weight: 700; padding-bottom: 4px; }
@@ -653,8 +653,8 @@ a { color: inherit; }
 .diagram-grid-row .cell-center { text-align: center; white-space: nowrap; }
 .diagram-grid-row .cell-center .cell-edit { text-align: center; }
 @media (max-width: 700px) {
-  .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em; }
-  .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 2.5em 1fr 4em 24px; }
+  .diagram-grid-row { grid-template-columns: 4.2em 1fr 4em; }
+  .diagram-grid.is-editing .diagram-grid-row { grid-template-columns: 4.2em 1fr 4em 24px; }
   .attach-cell { grid-column: 1 / -1; min-width: 0; }
 }
 
@@ -863,7 +863,7 @@ a { color: inherit; }
   .diagram-table-head { margin-bottom: 4px; }
   .diagram-table-head h3 { font-size: 12pt; }
   .diagram-table-head .part-note-text { font-size: 9pt; }
-  .diagram-grid-row { grid-template-columns: 2.2em 3fr 3.5em 1fr; gap: 8px; padding: 3px 0; break-inside: avoid; page-break-inside: avoid; }
+  .diagram-grid-row { grid-template-columns: 3.2em 3fr 3.5em 1fr; gap: 8px; padding: 3px 0; break-inside: avoid; page-break-inside: avoid; }
   .diagram-grid-row .cell { font-size: 9.5pt; }
   .attach-cell { grid-column: auto; }
   .row-attach { break-inside: avoid; }
