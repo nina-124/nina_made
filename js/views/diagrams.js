@@ -716,11 +716,10 @@ function bindColorPalette(container) {
     const ck = document.querySelector('.ck-panel:not([hidden])');
     const bottomLimit = ck ? ck.getBoundingClientRect().top : window.innerHeight;
     const h = palette.offsetHeight;
-    let top = rect.top - h - 6;
-    if (top < 8) top = rect.bottom + 6;
-    top = Math.max(8, Math.min(top, bottomLimit - h - 8));
+    // 垂直排列在那一列的左邊，高度對齊那一列；左邊放不下就貼著畫面左緣
+    const top = Math.max(8, Math.min(rect.top + rect.height / 2 - h / 2, bottomLimit - h - 8));
     palette.style.top = `${top}px`;
-    palette.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - palette.offsetWidth - 8))}px`;
+    palette.style.left = `${Math.max(4, rect.left - palette.offsetWidth - 4)}px`;
     palette.classList.add('is-floating');
   };
   const onSelectionChange = () => {
