@@ -569,12 +569,14 @@ a { color: inherit; }
   box-shadow: 0 4px 14px rgba(44, 62, 45, 0.15);
   width: fit-content;
 }
-/* 圖解編輯：色盤懸浮在正在輸入的那一列旁邊（位置由 JS 設定）；還沒點進任何列之前先藏起來 */
-.diagram-toolbar .color-palette { position: fixed; z-index: 30; flex-direction: column; width: auto; max-width: none; padding: 8px 6px; border-radius: 20px; visibility: hidden; }
-.diagram-toolbar .color-palette .palette-label { display: none; }
-.diagram-toolbar .color-palette .color-custom-form { flex-direction: column; flex: none; }
-.diagram-toolbar .color-palette .color-custom { width: 62px; flex: none; }
-.diagram-toolbar .color-palette.is-floating { visibility: visible; }
+/* 圖解編輯（只限電腦版；手機版面維持原本的色盤與完成鈕）：色盤懸浮在正在輸入的那一列旁邊（位置由 JS 設定）；還沒點進任何列之前先藏起來 */
+@media not ((max-width: 720px) or ((hover: none) and (pointer: coarse) and (max-width: 1100px))) {
+  .diagram-toolbar .color-palette { position: fixed; z-index: 30; flex-direction: column; width: auto; max-width: none; padding: 8px 6px; border-radius: 20px; visibility: hidden; }
+  .diagram-toolbar .color-palette .palette-label { display: none; }
+  .diagram-toolbar .color-palette .color-custom-form { flex-direction: column; flex: none; }
+  .diagram-toolbar .color-palette .color-custom { width: 62px; flex: none; }
+  .diagram-toolbar .color-palette.is-floating { visibility: visible; }
+}
 .palette-label { font-size: 13px; color: var(--text-grey); }
 .color-swatch {
   width: 26px;
@@ -973,11 +975,9 @@ a { color: inherit; }
   font-size: 20px;
   box-shadow: 0 4px 14px rgba(54, 75, 53, 0.3);
 }
-/* 圖解編輯中的「完成」鈕：懸浮在畫面右下角，捲到哪都按得到 */
-.icon-btn.floating-confirm { position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 48px; height: 48px; box-shadow: 0 6px 18px rgba(54, 75, 53, 0.35); }
-@media (max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px) {
-  .icon-btn.floating-confirm { right: 14px; }
-  body.ck-open .icon-btn.floating-confirm { bottom: 390px; } /* 鍵盤收合鈕在鍵盤右上角，往上讓開 */
+/* 圖解編輯中的「完成」鈕（只限電腦版）：懸浮在畫面右下角，捲到哪都按得到 */
+@media not ((max-width: 720px) or ((hover: none) and (pointer: coarse) and (max-width: 1100px))) {
+  .icon-btn.floating-confirm { position: fixed; right: 20px; bottom: 20px; z-index: 40; width: 48px; height: 48px; box-shadow: 0 6px 18px rgba(54, 75, 53, 0.35); }
 }
 /* 留出鍵盤高度，讓正在編輯的欄位能捲到鍵盤上方 */
 body.ck-open .main { padding-bottom: 320px; }

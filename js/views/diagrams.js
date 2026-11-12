@@ -712,6 +712,7 @@ function bindColorPalette(container) {
   let activeRow = null;
   const placePalette = () => {
     if (!palette || !activeRow || !activeRow.isConnected) return;
+    if (window.matchMedia('(max-width: 720px), (hover: none) and (pointer: coarse) and (max-width: 1100px)').matches) return; // 手機版面維持原本的色盤
     const rect = activeRow.getBoundingClientRect();
     const ck = document.querySelector('.ck-panel:not([hidden])');
     const bottomLimit = ck ? ck.getBoundingClientRect().top : window.innerHeight;
