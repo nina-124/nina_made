@@ -1087,6 +1087,7 @@ async function renderPatternEditor(container, node, trail, ctx) {
   const addTableBtn = container.querySelector('#add-table');
   if (addTableBtn) {
     addTableBtn.addEventListener('click', () => {
+      setStickyColor(null); // 新部位從黑色開始，不沿用上個部位最後選的字色
       node.tables.push({ id: newId(), part: '新部位', rows: [] });
       rerender();
     });

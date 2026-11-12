@@ -466,6 +466,7 @@ function mountTableEditor(host, text, { compact = false, onChange = () => {} } =
     host.querySelectorAll('[data-add]').forEach((el) => {
       el.addEventListener('click', () => {
         const kind = el.dataset.add;
+        if (kind === 'P') setStickyColor(null); // 新部位從黑色開始，不沿用上個部位最後選的字色
         // R：游標在哪一列就加在那一列的正下方；沒有游標（或那一列已刪除）才加到最後
         const after = kind === 'R' && text.rows.some((r) => r.id === lastRowId) ? lastRowId : undefined;
         addRow(newRow(kind), kind === 'R', undefined, after);
