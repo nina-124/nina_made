@@ -939,7 +939,7 @@ a { color: inherit; }
 .ck-plain { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .ck-labeled { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .ck-digits { grid-template-columns: repeat(10, minmax(0, 1fr)); }
-.ck-foot { grid-template-columns: repeat(7, minmax(0, 1.0857fr)) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 2fr); } /* 「空」「換行」鍵和數字鍵一樣寬（1.2fr ＝ 整列的 1/10），多出來的寬度平均分給前面 7 個符號 */
+.ck-foot { grid-template-columns: repeat(6, minmax(0, 1.2667fr)) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 2fr); } /* 「空」「換行」鍵和數字鍵一樣寬（1.2fr ＝ 整列的 1/10），多出來的寬度平均分給前面 6 個符號 */
 .ck-key {
   display: flex;
   flex-direction: column;

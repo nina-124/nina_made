@@ -15,7 +15,7 @@ const LABELED = [
 // 自動補逗號的針法（LABELED 裡的完整針法；PLAIN 全部都是針法）
 const AUTO_COMMA = new Set(['DTR', 'QTR', 'TC3', 'TC4', 'FC3', 'TPF5', 'TPC5', 'FPC5', 'EPC5']);
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-const SYMBOLS = ['(', ')', '[', ']', '{', '}', '-'];
+const SYMBOLS = ['(', ')', '[', ']', ',', '-'];
 
 const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 // 用鉤針鍵盤輸入的欄位：針法欄（針法頁），以及總針數、圈數欄（數字頁）
