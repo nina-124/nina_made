@@ -47,7 +47,8 @@ export function setStickyColor(hex) {
 }
 
 export function restoreStickyColor(cell) {
-  if (stickyHex !== null && window.getSelection().isCollapsed) applyTextColor(cell, stickyHex);
+  // 黑色（null）也要明確套用，否則瀏覽器會沿用上一個欄位暫存的輸入顏色
+  if (window.getSelection().isCollapsed) applyTextColor(cell, stickyHex);
 }
 
 // 針法欄的字色：逗號本身一律是預設色（黑色），逗號之後與新的空白欄位接著用最後選的顏色。電腦與手機鍵盤共用

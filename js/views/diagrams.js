@@ -706,8 +706,41 @@ function bindColorPalette(container) {
       el.classList.toggle('is-current', inCell && hex === now);
     });
   };
-  const onSelectionChange = () => (container.isConnected ? markCurrentColor() : document.removeEventListener('selectionchange', onSelectionChange));
+  // 色盤懸浮在正在輸入的那一列旁邊（那一列的上方；上方放不下就放下方），隨著游標與捲動移動。
+  // 游標離開儲存格（例如去輸入色碼）時留在原處，不會在點色盤前消失。
+  const palette = container.querySelector('.color-palette');
+  let activeRow = null;
+  const placePalette = () => {
+    if (!palette || !activeRow || !activeRow.isConnected) return;
+    const rect = activeRow.getBoundingClientRect();
+    const ck = document.querySelector('.ck-panel:not([hidden])');
+    const bottomLimit = ck ? ck.getBoundingClientRect().top : window.innerHeight;
+    const h = palette.offsetHeight;
+    let top = rect.top - h - 6;
+    if (top < 8) top = rect.bottom + 6;
+    top = Math.max(8, Math.min(top, bottomLimit - h - 8));
+    palette.style.top = `${top}px`;
+    palette.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - palette.offsetWidth - 8))}px`;
+    palette.classList.add('is-floating');
+  };
+  const onSelectionChange = () => {
+    if (!container.isConnected) {
+      document.removeEventListener('selectionchange', onSelectionChange);
+      window.removeEventListener('scroll', placePalette, true);
+      window.removeEventListener('resize', placePalette);
+      return;
+    }
+    markCurrentColor();
+    const cell = closestCellEdit(window.getSelection().anchorNode);
+    const row = cell && container.contains(cell) ? cell.closest('[data-row]') : null;
+    if (row) {
+      activeRow = row;
+      placePalette();
+    }
+  };
   document.addEventListener('selectionchange', onSelectionChange);
+  window.addEventListener('scroll', placePalette, true);
+  window.addEventListener('resize', placePalette);
   const custom = container.querySelector('[data-color-custom]');
   const preview = container.querySelector('[data-color-preview]');
   if (custom && preview) {
@@ -951,7 +984,7 @@ async function renderPatternEditor(container, node, trail, ctx) {
     <div class="topbar">
       ${renderCrumb(trail, ctx)}
       ${!editMode ? `<button class="icon-btn" id="print-btn" title="列印/匯出 PDF">${ICONS.printer}</button>` : ''}
-      <button class="icon-btn ${editMode ? 'confirm' : ''}" id="edit-toggle">${
+      <button class="icon-btn ${editMode ? 'confirm floating-confirm' : ''}" id="edit-toggle">${
     editMode ? ICONS.check : ICONS.pencil
   }</button>
     </div>
