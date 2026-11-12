@@ -12,8 +12,6 @@ const LABELED = [
   ['BLO', '後內針'], ['FLO', '前外針'], ['D', '倒數起'], ['TURN', '反面'], ['DU', '斷線'], ['DTR', '三繞長'], ['QTR', '四繞長'],
   ['TC3', '中棗3'], ['TC4', '中棗4'], ['FC3', '長棗3'], ['TPF5', '泡芙5長'], ['TPC5', '中爆5'], ['FPC5', '長爆5'], ['EPC5', '長長爆5'],
 ];
-// 自動補逗號的針法（LABELED 裡的完整針法；PLAIN 全部都是針法）
-const AUTO_COMMA = new Set(['DTR', 'QTR', 'TC3', 'TC4', 'FC3', 'TPF5', 'TPC5', 'FPC5', 'EPC5']);
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const SYMBOLS = ['(', ')', '[', ']', ',', '-'];
 
@@ -21,10 +19,9 @@ const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').m
 // 用鉤針鍵盤輸入的欄位：針法欄（針法頁），以及總針數、圈數欄（數字頁）
 const isKeyCell = (el) => el instanceof Element && el.matches('[contenteditable][data-field="stitch"], [contenteditable][data-field="total"], [contenteditable][data-field="round"]');
 
-// insert：按下去實際輸入的文字（預設就是按鍵上的字）；逗號按一下會輸入「, 」
-// after：完整的針法按完後自動接著輸入「, 」（BLO、D、TURN 這類修飾詞與標記不補）
-const key = (text, label, extra = '', insert = text, after = '') =>
-  `<button type="button" class="ck-key ${extra}" data-ck-insert="${insert}"${after ? ` data-ck-after="${after}"` : ''}>${text}${label ? `<small>${label}</small>` : ''}</button>`;
+// insert：按下去實際輸入的文字（預設就是按鍵上的字）；逗號按一下會輸入「, 」，針法鍵不會自動補逗號
+const key = (text, label, extra = '', insert = text) =>
+  `<button type="button" class="ck-key ${extra}" data-ck-insert="${insert}">${text}${label ? `<small>${label}</small>` : ''}</button>`;
 
 let panel = null;
 let openBtn = null; // 收合後的 ▲ 按鈕
@@ -50,8 +47,8 @@ function build() {
   panel.className = 'ck-panel';
   panel.hidden = true;
   panel.innerHTML = `
-    <div class="ck-grid ck-plain">${PLAIN.map((c) => key(c, '', '', c, ', ')).join('')}</div>
-    <div class="ck-grid ck-labeled">${LABELED.map(([c, l]) => key(c, l, '', c, AUTO_COMMA.has(c) ? ', ' : '')).join('')}</div>
+    <div class="ck-grid ck-plain">${PLAIN.map((c) => key(c, '')).join('')}</div>
+    <div class="ck-grid ck-labeled">${LABELED.map(([c, l]) => key(c, l)).join('')}</div>
     <div class="ck-grid ck-digits">${DIGITS.map((d) => key(d, '')).join('')}</div>
     <div class="ck-grid ck-foot">
       ${SYMBOLS.map((s) => key(s, '', 'ck-symbol', s === ',' ? ', ' : s)).join('')}
@@ -91,13 +88,9 @@ function build() {
     if (btn.dataset.ckInsert !== undefined) {
       // 逗號一律是預設色（黑色），不跟著前面字的顏色
       if (isSeparator(btn.dataset.ckInsert) && isKeyCell(document.activeElement)) resetColorAtCaret(document.activeElement);
-      // 前面已經是逗號就不重複輸入（針法鍵已自動補了逗號）
+      // 前面已經是逗號就不重複輸入
       if (isSeparator(btn.dataset.ckInsert) && endsWithSeparator(document.activeElement)) return;
       document.execCommand('insertText', false, btn.dataset.ckInsert);
-      if (btn.dataset.ckAfter && isKeyCell(document.activeElement)) {
-        resetColorAtCaret(document.activeElement); // 逗號一律是預設色，不跟著針法的顏色
-        document.execCommand('insertText', false, btn.dataset.ckAfter);
-      }
       // TURN 是「翻面並換下一圈」：文字插入後通知編輯器（圖解文本）接著新增下一圈；沒有編輯器接手時就只是文字
       if (btn.dataset.ckInsert === 'TURN') document.activeElement?.dispatchEvent(new CustomEvent('ck-turn', { bubbles: true }));
     } else if (btn.hasAttribute('data-ck-newline')) {
